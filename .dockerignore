@@ -1,0 +1,12 @@
+# Keep the Docker build context tight: only the Go sources, the patch
+# manifest, and license/version metadata are needed.
+.git
+.github
+.idea
+nix
+tests
+docs
+deploy
+resources
+*.md
+LICENSE
