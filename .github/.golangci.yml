@@ -1,0 +1,105 @@
+version: "2"
+
+linters:
+  default: fast
+  enable:
+    - cyclop
+    - dupl
+    - errcheck
+    - exptostd
+    - goconst
+    - godoclint
+    - gosec
+    - gosmopolitan
+    - govet
+    - importas
+    - interfacebloat
+    - ireturn
+    - ineffassign
+    - modernize
+    - nakedret
+    - noctx
+    - prealloc
+    - predeclared
+    - sloglint
+    - staticcheck
+    - tagalign
+    - unconvert
+    - unused
+    - unparam
+    - whitespace
+  disable:
+    - wsl # disables "whitespace linter", including cuddled if rules
+    - nlreturn # disables "blank line before return/break/continue"
+    - testpackage # disables errors that enforce test packages to be apart from the internal used package
+
+  settings:
+    nakedret:
+      max-func-lines: 40
+    cyclop:
+      max-complexity: 15
+    ireturn:
+      allow:
+        - anon # for anonymous interfaces
+        - error # for errors
+        - empty # for `interface{}|any`
+        - stdlib # for standard library
+        - generic # for generic interfaces added in go 1.18
+    depguard:
+      rules:
+        prevent_unmaintained_packages:
+          list-mode: lax
+          files:
+            - $all
+          deny:
+            - pkg: io/ioutil
+              desc: "replaced by io and os packages since Go 1.16"
+    tagalign:
+      # Set to true to enable sorting of tags.
+      sort: true
+      # Define the desired order of tag keys as a comma-separated string.
+      # Tags not listed here will be sorted alphabetically after the fixed order.
+      order: "json,yaml,xml,protobuf,bson,validate,default,example"
+      # Optional: Set to true for stricter adherence to the defined order.
+      # strict: true
+
+    lll:
+      # max line length, lines longer will be reported. Default is 120.
+      line-length: 150
+
+  exclusions:
+    generated: strict
+    warn-unused: true
+    rules:
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - errcheck
+          - dupl
+          - gosec
+          - maintidx
+
+      - path-except: _test\.go
+        linters:
+          - forbidigo
+
+      - linters:
+          - staticcheck
+        text: "SA1029:"
+
+      - linters:
+          - lll
+        source: "^//go:generate "
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+    - golines
+  exclusions:
+    warn-unused: true
+    generated: strict
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
