@@ -31,10 +31,11 @@ jobs:
         uses: cachix/install-nix-action@v27
         with:
           extra_nix_config: |
-            experimental-features = nix-command flakes
+            experimental-features = nix-command flakes impure-derivations ca-derivations
+            sandbox = relaxed
 
       - name: Build OCI image via Nix
-        run: nix build .#image --print-out-paths --no-link > /tmp/image-path
+        run: nix build --impure .#image --print-out-paths --no-link > /tmp/image-path
 
       - name: Log in to the Container registry
         if: github.event_name != 'pull_request'
