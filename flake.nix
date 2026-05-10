@@ -1,6 +1,13 @@
 {
   description = "foundryvtt-docker runtime and OCI image";
 
+  # Enable the impure-derivations experimental feature so foundryctl
+  # can be built directly from go.mod + go.sum without a separate
+  # vendor lockfile or pre-fetch step.
+  nixConfig = {
+    extra-experimental-features = "impure-derivations ca-derivations";
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";

@@ -2,24 +2,15 @@
 
 ARG RUNTIME_IMAGE=docker.io/oven/bun:1-debian
 
-FROM golang:1.26 AS go-vendor
+FROM nixos/nix:latest AS builder
+
+RUN printf 'experimental-features = nix-command flakes impure-derivations ca-derivations\nsandbox = false\nfilter-syscalls = false\n' \
+    >> /etc/nix/nix.conf
 
 WORKDIR /src
 COPY . .
 
-RUN for mod in apps/foundryctl; do \
-      (cd "$mod" && GOWORK=off go mod vendor) || exit 1; \
-    done
-
-FROM nixos/nix:latest AS builder
-
-RUN printf 'experimental-features = nix-command flakes\nsandbox = false\nfilter-syscalls = false\n' \
-    >> /etc/nix/nix.conf
-
-WORKDIR /src
-COPY --from=go-vendor /src .
-
-RUN nix build .#foundryctl --print-out-paths --no-link > /tmp/foundryctl-path
+RUN nix build --impure .#foundryctl --print-out-paths --no-link > /tmp/foundryctl-path
 
 RUN mkdir -p /out \
  && cp "$(cat /tmp/foundryctl-path)/bin/foundryctl" /out/foundryctl
