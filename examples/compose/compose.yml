@@ -1,0 +1,24 @@
+services:
+  foundry:
+    image: foundryvtt-docker:dev
+    restart: unless-stopped
+    ports:
+      - "30000:30000/tcp"
+    environment:
+      FOUNDRY_ADMIN_KEY: ${FOUNDRY_ADMIN_KEY:?set FOUNDRY_ADMIN_KEY}
+      FOUNDRY_VERSION: "14.361"
+      # FOUNDRY_RELEASE_URL: https://r2.foundryvtt.com/...signed...
+      # FOUNDRY_JS_RUNTIME: node
+    volumes:
+      - foundry-data:/data
+      - foundry-install:/foundry
+    healthcheck:
+      test: ["CMD", "foundryctl", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 3m
+      retries: 3
+
+volumes:
+  foundry-data:
+  foundry-install:
