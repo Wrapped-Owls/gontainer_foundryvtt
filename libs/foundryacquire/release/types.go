@@ -22,8 +22,8 @@ type FetchOptions struct {
 	// Retries is the number of additional attempts after the first
 	// failure. 0 means "try once". Default 0.
 	Retries int
-	// Sleep is the back-off implementation. Default uses time.Sleep
-	// honouring ctx cancellation.
+	// Sleep is the back-off implementation. Default uses backoff.Sleep
+	// (honours ctx cancellation).
 	Sleep func(ctx context.Context, d time.Duration) error
 	// Now allows tests to inject a clock for jitter calculations.
 	Rand *rand.Rand

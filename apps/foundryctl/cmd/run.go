@@ -25,9 +25,7 @@ func Run(_ []string, logger *slog.Logger) int {
 		logger.Error("activation failed", "err", err, "install_root", state.App.Paths.InstallRoot)
 		return 1
 	}
-	if err = startHealthServer(ctx, logger, state.App.Paths.HealthAddr, state.Runtime.Port); err != nil {
-		logger.Warn("health server start failed", "err", err)
-	}
+	startHealthServer(ctx, logger, state.App.Paths.HealthAddr, state.Runtime.Port)
 	logger.Info("js runtime selected", "kind", state.JSRuntime.Kind, "path", state.JSRuntime.Path)
 
 	mgr := backoff.NewFromConfig(state.App.Backoff)

@@ -37,10 +37,6 @@ func DefaultConfig() Config {
 	return Config{Kind: Default}
 }
 
-func Load() (Config, error) {
-	return confloader.Load("jsruntime.json", DefaultConfig(), LoadFromEnv)
-}
-
 func LoadFromEnv(c *Config) error {
 	return confloader.BindEnv(
 		confloader.BindField(&c.Kind, envJSRuntime, parseKind),

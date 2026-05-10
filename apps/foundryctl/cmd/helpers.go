@@ -11,19 +11,12 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime/health"
 )
 
-func orDefault(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
-}
-
 func startHealthServer(
 	ctx context.Context,
 	logger *slog.Logger,
 	addr string,
 	foundryPort int,
-) error {
+) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		probe := health.Default()
@@ -49,5 +42,4 @@ func startHealthServer(
 		}
 	}()
 	logger.Info("health server listening", "addr", addr)
-	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryacquire/auth"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/jsonhttp"
 )
 
@@ -22,7 +23,7 @@ func Fetch(
 		return "", err
 	}
 	if opts.Sleep == nil {
-		opts.Sleep = sleepCtx
+		opts.Sleep = backoff.Sleep
 	}
 
 	releaseURL := FetchURL(build)
@@ -30,7 +31,7 @@ func Fetch(
 	var lastErr error
 	for attempt := 1; attempt <= totalAttempts; attempt++ {
 		if attempt > 1 {
-			delay := backoff(attempt, opts.Rand)
+			delay := retryDelay(attempt, opts.Rand)
 			if err = opts.Sleep(ctx, delay); err != nil {
 				return "", err
 			}
