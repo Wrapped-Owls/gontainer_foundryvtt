@@ -11,17 +11,23 @@ let
       busybox
     ];
   };
+
+  # Separate derivations so buildLayeredImage never needs to write into
+  # existing store-owned directories (which are read-only and cause
+  # permission errors with both fakeRootCommands and extraCommands).
+  patchManifest = pkgs.runCommand "foundryvtt-patch-manifest" { } ''
+    mkdir -p $out/etc/foundry/patches
+    cp ${../patches/manifest.yaml} $out/etc/foundry/patches/manifest.yaml
+  '';
+
+  runtimeDirs = pkgs.runCommand "foundryvtt-runtime-dirs" { } ''
+    mkdir -p $out/data $out/foundry
+  '';
 in
 pkgs.dockerTools.buildLayeredImage {
   name = "foundryvtt-docker";
   tag  = "latest";
-  contents = [ rootfs ];
-
-  fakeRootCommands = ''
-    mkdir -p data foundry etc/foundry/patches
-    cp ${../patches/manifest.yaml} etc/foundry/patches/manifest.yaml
-  '';
-  enableFakechroot = true;
+  contents = [ rootfs patchManifest runtimeDirs ];
 
   config = {
     Entrypoint = [ "${foundryctl}/bin/foundryctl" ];
