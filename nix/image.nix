@@ -21,7 +21,7 @@ let
   '';
 
   runtimeDirs = pkgs.runCommand "foundryvtt-runtime-dirs" { } ''
-    mkdir -p $out/data $out/foundry
+    mkdir -p $out/data $out/foundry $out/foundry/sources
   '';
 in
 pkgs.dockerTools.buildLayeredImage {
@@ -38,6 +38,7 @@ pkgs.dockerTools.buildLayeredImage {
       "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
       "FOUNDRY_DATA_PATH=/data"
       "FOUNDRY_INSTALL_ROOT=/foundry"
+      "FOUNDRY_SOURCES_DIR=/foundry/sources"
       "FOUNDRY_PATCH_MANIFEST=/etc/foundry/patches/manifest.yaml"
     ];
     ExposedPorts = { "30000/tcp" = {}; };

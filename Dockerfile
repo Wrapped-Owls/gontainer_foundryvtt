@@ -22,9 +22,10 @@ LABEL org.opencontainers.image.description="FoundryVTT container runtime"
 
 ENV FOUNDRY_DATA_PATH=/data \
     FOUNDRY_INSTALL_ROOT=/foundry \
+    FOUNDRY_SOURCES_DIR=/foundry/sources \
     FOUNDRY_PATCH_MANIFEST=/etc/foundry/patches/manifest.yaml
 
-RUN mkdir -p /data /foundry /etc/foundry/patches \
+RUN mkdir -p /data /foundry /foundry/sources /etc/foundry/patches \
  && apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates tzdata \
  && rm -rf /var/lib/apt/lists/*
