@@ -1,8 +1,9 @@
-module github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryacquire
+module github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery
 
 go 1.26.2
 
 require (
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit v0.0.0
 	golang.org/x/net v0.54.0
 )

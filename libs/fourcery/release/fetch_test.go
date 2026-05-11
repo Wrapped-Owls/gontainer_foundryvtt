@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryacquire/auth"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/auth"
 )
 
 type rtFunc func(*http.Request) (*http.Response, error)
