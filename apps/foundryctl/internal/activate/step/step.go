@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	appconfig "github.com/wrapped-owls/gontainer_foundryvtt/apps/foundryctl/config"
-	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundryctl/internal/activate/install"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/forge"
 	runtimecfg "github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime/config"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime/jsruntime"
 )
@@ -17,7 +17,7 @@ type State struct {
 	App       appconfig.Config
 	Runtime   runtimecfg.Config
 	JSRuntime jsruntime.Runtime
-	Install   install.Install
+	Install   forge.Install
 }
 
 // Step is the strategy interface for one phase of the activation sequence.

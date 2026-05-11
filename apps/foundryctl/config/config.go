@@ -19,6 +19,7 @@ type Config struct {
 type PathsConfig struct {
 	DataPath     string
 	InstallRoot  string
+	SourcesDir   string
 	ManifestPath string
 	MainScript   string
 	HealthAddr   string
@@ -46,6 +47,7 @@ func Default() Config {
 		Paths: PathsConfig{
 			DataPath:     "/data",
 			InstallRoot:  "/foundry",
+			SourcesDir:   "/foundry/sources",
 			ManifestPath: "/etc/foundry/patches/manifest.yaml",
 			MainScript:   "resources/app/main.mjs",
 			HealthAddr:   "127.0.0.1:30001",

@@ -3,6 +3,7 @@ package config
 const (
 	envDataPath     = "FOUNDRY_DATA_PATH"
 	envInstallRoot  = "FOUNDRY_INSTALL_ROOT"
+	envSourcesDir   = "FOUNDRY_SOURCES_DIR"
 	envManifestPath = "FOUNDRY_PATCH_MANIFEST"
 	envMainScript   = "FOUNDRY_MAIN_SCRIPT"
 	envHealthAddr   = "FOUNDRY_HEALTH_ADDR"
