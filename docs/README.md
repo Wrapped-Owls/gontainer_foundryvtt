@@ -32,7 +32,8 @@ open to renegotiation per PR.
 - [`testing.md`](rules/testing.md) — colocated tests, integration via build tag
 - [`wiring.md`](rules/wiring.md) — constructor injection + step sequence
 - [`patches.md`](rules/patches.md) — `foundrypatch` manifest and applier system
-- [`http-clients.md`](rules/http-clients.md) — external API clients via `foundryacquire`
+- [`sources.md`](rules/sources.md) — `fourcery` acquisition pipeline and sources directory
+- [`http-clients.md`](rules/http-clients.md) — external API clients via `fourcery`
 - [`transport.md`](rules/transport.md) — CLI command dispatch and typed HTTP
 - [`interop.md`](rules/interop.md) — cross-module import rules and consumer interfaces
 - [`build.md`](rules/build.md) — Nix build system, OCI image rules, runtime version selection
@@ -47,7 +48,7 @@ Implementation recipes with copyable templates.
 - [`patch-manifest.md`](patterns/patch-manifest.md) — patch manifest format and action types
 - [`jsonhttp.md`](patterns/jsonhttp.md) — `jsonhttp.Request` typed HTTP call pattern
 - [`integration-tests.md`](patterns/integration-tests.md) — tests with `t.TempDir()` and `t.Setenv`
-- [`auth-session.md`](patterns/auth-session.md) — `foundryacquire` auth session and cookie reuse
+- [`auth-session.md`](patterns/auth-session.md) — `fourcery` auth session and cookie reuse
 - [`app-skeleton.md`](patterns/app-skeleton.md) — new `apps/<name>/` skeleton
 - [`confloader-layout.md`](patterns/confloader-layout.md) — config package layout with `confloader`
 - [`nix-builds.md`](patterns/nix-builds.md) — Nix flake, Go binary, and container image build

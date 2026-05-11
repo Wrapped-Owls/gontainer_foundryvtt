@@ -1,12 +1,12 @@
-# External API clients — `foundryacquire`
+# External API clients — `fourcery`
 
-`libs/foundryacquire` is the typed HTTP client for the FoundryVTT authenticated download API.
+`libs/fourcery` is the typed HTTP client for the FoundryVTT authenticated download API.
 It handles cookie-based authentication, release URL resolution, and archive acquisition.
 
 ## Layout
 
 ```
-libs/foundryacquire/
+libs/fourcery/
 ├── go.mod
 ├── auth/
 │   ├── auth.go          # BaseURL constant, Session type

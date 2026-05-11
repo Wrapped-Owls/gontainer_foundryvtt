@@ -13,7 +13,7 @@ with working, self-contained Go code.
 | [`patch-manifest.md`](patch-manifest.md) | Patch manifest format and action types |
 | [`jsonhttp.md`](jsonhttp.md) | `jsonhttp.Request` typed HTTP call pattern |
 | [`integration-tests.md`](integration-tests.md) | Integration tests with `t.TempDir()` and `t.Setenv` |
-| [`auth-session.md`](auth-session.md) | `foundryacquire` auth session and cookie reuse |
+| [`auth-session.md`](auth-session.md) | `fourcery` auth session and cookie reuse |
 | [`app-skeleton.md`](app-skeleton.md) | New `apps/<name>/` skeleton |
 | [`confloader-layout.md`](confloader-layout.md) | Config package layout with `confloader` |
 | [`nix-builds.md`](nix-builds.md) | Nix flake, Go binary, and container image build |

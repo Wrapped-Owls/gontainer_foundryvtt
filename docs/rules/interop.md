@@ -6,12 +6,12 @@ Rules for when code in one module (app or lib) calls into another module.
 
 ```
 apps/foundryctl
-  ├─► libs/foundryacquire
+  ├─► libs/fourcery
   ├─► libs/foundrykit
   ├─► libs/foundrypatch
   └─► libs/foundryruntime
 
-libs/foundryacquire
+libs/fourcery
   └─► libs/foundrykit  (jsonhttp, backoff)
 
 libs/foundrypatch
@@ -37,12 +37,12 @@ type downloader interface {
 }
 ```
 
-`libs/foundryacquire/release.Fetch` satisfies this structurally. Tests inject a fake without
+`libs/fourcery/release.Fetch` satisfies this structurally. Tests inject a fake without
 importing the real implementation.
 
 ## Cross-lib dependencies
 
-When a lib (`foundryacquire`) depends on another lib (`foundrykit`), the dependency is declared
+When a lib (`fourcery`) depends on another lib (`foundrykit`), the dependency is declared
 in its `go.mod` with a `replace` directive pointing to the workspace path. No lib may pull in
 `apps/` through a transitive chain.
 

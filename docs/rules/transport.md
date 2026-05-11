@@ -84,5 +84,5 @@ apps/foundryctl/
 ## See also
 
 - [`startup.md`](startup.md) — full boot sequence.
-- [`../rules/http-clients.md`](http-clients.md) — `foundryacquire` typed HTTP client.
+- [`../rules/http-clients.md`](http-clients.md) — `fourcery` typed HTTP client.
 - [`../patterns/app-skeleton.md`](../patterns/app-skeleton.md) — adding a new subcommand.

@@ -38,4 +38,4 @@
 
 - [`config.md`](config.md) — typed `Config` and env var loading.
 - [`logging.md`](logging.md) — what must not appear in log output.
-- [`../rules/http-clients.md`](http-clients.md) — authenticated HTTP client for `foundryacquire`.
+- [`../rules/http-clients.md`](http-clients.md) — authenticated HTTP client for `fourcery`.

@@ -39,7 +39,7 @@ type installStep struct {
 }
 ```
 
-`libs/foundryacquire/release.Fetch` satisfies `downloader` structurally. The consumer doesn't
+`libs/fourcery/release.Fetch` satisfies `downloader` structurally. The consumer doesn't
 need to import the implementor; the implementor doesn't need to know about the consumer.
 
 The `interfacebloat` linter flags interfaces with too many methods — split them by responsibility.

@@ -13,7 +13,7 @@ response. This is the sole HTTP client helper — do not use `http.Get` or hand-
 Add a named struct for the response in the sub-package that owns the API call:
 
 ```go
-// libs/foundryacquire/release/types.go
+// libs/fourcery/release/types.go
 type releaseURLResp struct {
     URL string `json:"url"`
 }
@@ -80,4 +80,4 @@ Build the response body with `io.NopCloser(bytes.NewReader([]byte(`{"url":"https
 ## See also
 
 - [`../rules/transport.md`](../rules/transport.md) — typed HTTP rule.
-- [`../rules/http-clients.md`](../rules/http-clients.md) — `foundryacquire` client overview.
+- [`../rules/http-clients.md`](../rules/http-clients.md) — `fourcery` client overview.

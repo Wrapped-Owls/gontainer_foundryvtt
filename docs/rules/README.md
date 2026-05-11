@@ -37,7 +37,8 @@ The configuration enables (non-exhaustive): `errcheck`, `govet`, `staticcheck`, 
 | [`testing.md`](testing.md) | Colocated tests, integration with build tag |
 | [`wiring.md`](wiring.md) | Constructor injection and step sequence |
 | [`patches.md`](patches.md) | `foundrypatch` manifest and applier |
-| [`http-clients.md`](http-clients.md) | External API clients via `foundryacquire` |
+| [`sources.md`](sources.md) | `fourcery` acquisition pipeline and sources directory |
+| [`http-clients.md`](http-clients.md) | External API clients via `fourcery` |
 | [`transport.md`](transport.md) | CLI command dispatch and typed HTTP |
 | [`interop.md`](interop.md) | Cross-module import rules and consumer-defined interfaces |
 | [`build.md`](build.md) | Nix build system, OCI rules, runtime version selection |

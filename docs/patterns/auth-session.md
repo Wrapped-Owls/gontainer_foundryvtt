@@ -1,10 +1,10 @@
-# `foundryacquire` auth session
+# `fourcery` auth session
 
 How to authenticate with the FoundryVTT API and reuse the session across calls.
 
 ## Overview
 
-`libs/foundryacquire/auth` provides a cookie-based `Session` backed by an `*http.Client` with
+`libs/fourcery/auth` provides a cookie-based `Session` backed by an `*http.Client` with
 a cookie jar. A `Session` is obtained once via `auth.Login` and then reused for all subsequent
 API calls.
 
@@ -46,13 +46,14 @@ The authenticated cookies are sent automatically on each request.
 ## Session lifetime
 
 A `Session` is valid for the duration of a single `activate.Prepare` run. Do not store it
-across invocations. The `install.Session` helper in `apps/foundryctl/internal/activate/install`
-wraps the login logic and is called only when `FOUNDRY_USERNAME` and `FOUNDRY_PASSWORD` are set.
+across invocations. The `sessionSource` in `libs/fourcery/source/session.go` wraps the login
+logic and is invoked only when `FOUNDRY_USERNAME`/`FOUNDRY_PASSWORD` or `FOUNDRY_SESSION` are set.
 
 ## Skipping auth (custom release URL)
 
-When `FOUNDRY_RELEASE_URL` is set, the download step skips authentication entirely and fetches
-the presigned URL directly. No `auth.Login` is called.
+When `FOUNDRY_RELEASE_URL` is set and a local artefact already matches the desired version,
+the controller reuses it without any network call. When a URL download is required it fetches
+the presigned URL directly — no `auth.Login` is called.
 
 ## Testing
 
@@ -68,6 +69,6 @@ sess := auth.NewSession(fake, "test-agent")
 
 ## See also
 
-- [`../rules/http-clients.md`](../rules/http-clients.md) — `foundryacquire` layout.
+- [`../rules/http-clients.md`](../rules/http-clients.md) — `fourcery` layout.
 - [`jsonhttp.md`](jsonhttp.md) — typed `jsonhttp.Request` call pattern.
 - [`../rules/security.md`](../rules/security.md) — credential handling.
