@@ -33,6 +33,7 @@ func loadPathsFromEnv(c *PathsConfig) confloader.Binder {
 		return confloader.BindEnv(
 			confloader.BindField(&c.DataPath, envDataPath, nil),
 			confloader.BindField(&c.InstallRoot, envInstallRoot, nil),
+			confloader.BindField(&c.SourcesDir, envSourcesDir, nil),
 			confloader.BindField(&c.ManifestPath, envManifestPath, nil),
 			confloader.BindField(&c.MainScript, envMainScript, nil),
 			confloader.BindField(&c.HealthAddr, envHealthAddr, nil),
