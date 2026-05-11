@@ -1,12 +1,10 @@
 package source
 
 import (
-	"net/http"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/jsonhttp"
 )
 
-type HTTPDoer interface {
-	Do(*http.Request) (*http.Response, error)
-}
+type HTTPDoer = jsonhttp.HTTPDoer
 
 type Config struct {
 	SourcesDir string
@@ -22,5 +20,3 @@ type Options struct {
 }
 
 type Option func(*Options)
-
-func WithHTTPClient(c HTTPDoer) Option { return func(o *Options) { o.HTTPClient = c } }
