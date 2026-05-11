@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -83,8 +83,8 @@ func scanSources(dir string) ([]Source, []Source, error) {
 			zipNames = append(zipNames, name)
 		}
 	}
-	sort.Strings(folderNames)
-	sort.Strings(zipNames)
+	slices.Sort(folderNames)
+	slices.Sort(zipNames)
 	folders := make([]Source, 0, len(folderNames))
 	for _, n := range folderNames {
 		folders = append(folders, NewFolder(filepath.Join(dir, n)))

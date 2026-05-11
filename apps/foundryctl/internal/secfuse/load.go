@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"sort"
+	"slices"
 )
 
 func Load(path string) (Result, error) {
@@ -41,7 +41,7 @@ func Load(path string) (Result, error) {
 		}
 		res.Applied = append(res.Applied, envName)
 	}
-	sort.Strings(res.Applied)
-	sort.Strings(res.Unknown)
+	slices.Sort(res.Applied)
+	slices.Sort(res.Unknown)
 	return res, nil
 }

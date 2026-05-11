@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -69,14 +69,17 @@ func scanCandidates(installRoot string) ([]Candidate, error) {
 			out = append(out, c)
 		}
 	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].Parsed == nil {
-			return false
+	slices.SortStableFunc(out, func(a, b Candidate) int {
+		if a.Parsed == nil && b.Parsed == nil {
+			return 0
 		}
-		if out[j].Parsed == nil {
-			return true
+		if a.Parsed == nil {
+			return 1 // non-semver sorts last
 		}
-		return out[i].Parsed.GreaterThan(out[j].Parsed)
+		if b.Parsed == nil {
+			return -1 // non-semver sorts last
+		}
+		return b.Parsed.Compare(a.Parsed) // newest first (descending)
 	})
 	return out, nil
 }
