@@ -1,0 +1,50 @@
+name: Update Nix Vendor Hash
+
+on:
+  push:
+    paths:
+      - "**/go.mod"
+      - "**/go.sum"
+      - "go.work"
+      - "go.work.sum"
+
+jobs:
+  update-vendor-hash:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            sandbox = relaxed
+
+      - name: Recompute vendorHash
+        shell: bash
+        run: nix run .#update-vendor-hash
+
+      - name: Commit updated hash
+        shell: bash
+        run: |
+          changed_files="$(git status --porcelain -- nix/modules/foundryctl.nix || true)"
+
+          if [ -z "${changed_files}" ]; then
+            echo "vendorHash unchanged — no commit needed"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nix/modules/foundryctl.nix
+          git commit -m ":memo: chore(nix): update foundryctl vendorHash"
+          git push origin "HEAD:${{ github.ref_name }}"
