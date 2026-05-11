@@ -23,5 +23,6 @@ var (
 
 type Options struct {
 	HTTPClient *http.Client
-	UserAgent  string
+
+	UserAgent string
 }

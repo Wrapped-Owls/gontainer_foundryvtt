@@ -18,8 +18,10 @@ var (
 
 type FetchOptions struct {
 	Retries int
-	Sleep   func(ctx context.Context, d time.Duration) error
-	Rand    *rand.Rand
+
+	Sleep func(ctx context.Context, d time.Duration) error
+
+	Rand *rand.Rand
 }
 
 type releaseURLResp struct { // mirrors the FoundryVTT release URL endpoint's JSON response

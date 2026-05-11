@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 )
 
 type Kind int
@@ -83,7 +84,6 @@ func Detect(path string) (Kind, error) {
 }
 
 func Extract(zipPath, baseDir string) (Kind, error) {
-	const dirPerm fs.FileMode = 0o755
 	kind, err := Detect(zipPath)
 	if err != nil {
 		return kind, err
@@ -105,7 +105,7 @@ func Extract(zipPath, baseDir string) (Kind, error) {
 	}
 
 	for _, f := range zr.File {
-		if strings.Contains(f.Name, "..") {
+		if strings.Contains(f.Name, "..") { // reject before filepath.Join collapses ".."
 			return kind, fmt.Errorf("%w: %s", ErrUnsafePath, f.Name)
 		}
 		rel := filepath.FromSlash(prefix + f.Name)
@@ -115,12 +115,12 @@ func Extract(zipPath, baseDir string) (Kind, error) {
 			return kind, fmt.Errorf("%w: %s", ErrUnsafePath, f.Name)
 		}
 		if f.FileInfo().IsDir() {
-			if err = os.MkdirAll(dest, dirPerm); err != nil {
+			if err = os.MkdirAll(dest, fsperm.Dir); err != nil {
 				return kind, err
 			}
 			continue
 		}
-		if err = os.MkdirAll(filepath.Dir(dest), dirPerm); err != nil {
+		if err = os.MkdirAll(filepath.Dir(dest), fsperm.Dir); err != nil {
 			return kind, err
 		}
 		if err = writeZipEntry(f, dest); err != nil {
@@ -131,7 +131,6 @@ func Extract(zipPath, baseDir string) (Kind, error) {
 }
 
 func writeZipEntry(f *zip.File, dest string) error {
-	const filePerm fs.FileMode = 0o644
 	rc, err := f.Open()
 	if err != nil {
 		return err
@@ -139,7 +138,7 @@ func writeZipEntry(f *zip.File, dest string) error {
 	defer func() { _ = rc.Close() }()
 	mode := f.Mode().Perm()
 	if mode == 0 {
-		mode = filePerm
+		mode = fsperm.File
 	}
 	out, err := os.OpenFile(dest, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
 	if err != nil {

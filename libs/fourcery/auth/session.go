@@ -2,13 +2,14 @@ package auth
 
 import (
 	"encoding/json"
-	"io/fs"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
 	"time"
 
 	"golang.org/x/net/publicsuffix"
+
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 )
 
 type Session struct {
@@ -33,7 +34,6 @@ func (s *Session) Client() *http.Client { return s.client }
 func (s *Session) Jar() http.CookieJar { return s.jar }
 
 func (s *Session) Save(path string) error {
-	const secretPerm fs.FileMode = 0o600
 	if s.jar != nil {
 		s.Cookies = exportCookies(s.jar)
 	}
@@ -41,7 +41,7 @@ func (s *Session) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, b, secretPerm)
+	return os.WriteFile(path, b, fsperm.Secret)
 }
 
 func LoadSession(path string, opts Options) (*Session, error) {
