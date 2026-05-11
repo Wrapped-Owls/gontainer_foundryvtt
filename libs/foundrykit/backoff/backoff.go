@@ -2,35 +2,12 @@ package backoff
 
 import (
 	"context"
-	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 )
-
-func New(cacheDir string) *Tracker {
-	return &Tracker{CacheDir: cacheDir}
-}
-
-func NewFromEnv() *Tracker {
-	cfg := Default()
-	_ = LoadFromEnv(&cfg)
-	return NewFromConfig(cfg)
-}
-
-func (m *Tracker) Reset() error {
-	if m.CacheDir == "" {
-		return nil
-	}
-	err := os.Remove(filepath.Join(m.CacheDir, stateFile))
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return err
-	}
-	return nil
-}
 
 func (m *Tracker) OnFailure(exitCode int) (Decision, error) {
 	if m.KubernetesBypass {
