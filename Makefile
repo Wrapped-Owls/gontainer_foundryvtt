@@ -1,4 +1,4 @@
-WORKSPACE_MODULES := libs/foundrykit libs/foundryacquire libs/foundrypatch libs/foundryruntime apps/foundryctl
+WORKSPACE_MODULES := libs/foundrykit libs/fourcery libs/foundrypatch libs/foundryruntime apps/foundryctl
 
 .PHONY: all vet test fmt tidy tidy-tests test-modules workspace-modules clean nix-image nix-hash docker-image
 

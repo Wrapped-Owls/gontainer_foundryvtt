@@ -2,7 +2,7 @@ go 1.26.2
 
 use (
 	apps/foundryctl
-	libs/foundryacquire
+	libs/fourcery
 	libs/foundrykit
 	libs/foundrypatch
 	libs/foundryruntime
