@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/applier/action"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/ledger"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/manifest"
 )
 
@@ -18,6 +20,10 @@ var ErrHashMismatch = action.ErrHashMismatch
 type Applier struct {
 	Root       string
 	HTTPClient HTTPDoer
+
+	Ledger *ledger.Ledger
+
+	OnApplied func(ledger.Entry)
 
 	runners map[manifest.ActionType]action.Runner
 }
@@ -31,15 +37,41 @@ func (a *Applier) Apply(
 		logf = func(string, ...any) {}
 	}
 	a.initRunners()
+	now := a.now
 	for _, p := range patches {
+		hash := ledger.HashPatch(p)
+		if a.Ledger != nil && a.Ledger.Has(p.ID, hash) {
+			logf("patch %s already applied (hash %s), skipping", p.ID, shortHash(hash))
+			continue
+		}
 		logf("applying patch %s: %s", p.ID, p.Description)
 		for i, act := range p.Actions {
 			if err := a.runAction(ctx, act); err != nil {
 				return fmt.Errorf("patch %s action[%d] %s: %w", p.ID, i, act.Type, err)
 			}
 		}
+		if a.OnApplied != nil {
+			a.OnApplied(ledger.Entry{
+				ID:        p.ID,
+				Versions:  p.Versions,
+				PatchHash: hash,
+				AppliedAt: now(),
+			})
+		}
 	}
 	return nil
+}
+
+func (a *Applier) now() time.Time {
+	return time.Now().UTC()
+}
+
+func shortHash(h string) string {
+	const shortHashLen = 8
+	if len(h) > shortHashLen {
+		return h[:shortHashLen]
+	}
+	return h
 }
 
 func (a *Applier) initRunners() {
