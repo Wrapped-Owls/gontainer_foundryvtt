@@ -4,13 +4,13 @@ ARG RUNTIME_IMAGE=docker.io/oven/bun:1-debian
 
 FROM nixos/nix:latest AS builder
 
-RUN printf 'experimental-features = nix-command flakes impure-derivations ca-derivations\nsandbox = false\nfilter-syscalls = false\n' \
+RUN printf 'experimental-features = nix-command flakes\nsandbox = false\nfilter-syscalls = false\n' \
     >> /etc/nix/nix.conf
 
 WORKDIR /src
 COPY . .
 
-RUN nix build --impure .#foundryctl --print-out-paths --no-link > /tmp/foundryctl-path
+RUN nix build .#foundryctl --print-out-paths --no-link > /tmp/foundryctl-path
 
 RUN mkdir -p /out \
  && cp "$(cat /tmp/foundryctl-path)/bin/foundryctl" /out/foundryctl

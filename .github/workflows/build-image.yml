@@ -2,10 +2,8 @@ name: Build and publish OCI image
 
 on:
   push:
-    branches:
-      - main
     tags:
-      - "v*"
+      - "v*.*.*"
   pull_request:
     branches:
       - main
@@ -31,14 +29,14 @@ jobs:
         uses: cachix/install-nix-action@v27
         with:
           extra_nix_config: |
-            experimental-features = nix-command flakes impure-derivations ca-derivations
+            experimental-features = nix-command flakes
             sandbox = relaxed
 
       - name: Build OCI image via Nix
-        run: nix build --impure .#image --print-out-paths --no-link > /tmp/image-path
+        run: nix build .#image --print-out-paths --no-link > /tmp/image-path
 
       - name: Log in to the Container registry
-        if: github.event_name != 'pull_request'
+        if: startsWith(github.ref, 'refs/tags/')
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -55,7 +53,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Tag and push image
-        if: github.event_name != 'pull_request'
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           for tag in $(echo "${{ steps.meta.outputs.tags }}"); do
             docker tag foundryvtt-docker:latest "$tag"
