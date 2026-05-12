@@ -148,6 +148,74 @@ func TestResolve_DesiredMatchesURLLabel(t *testing.T) {
 	}
 }
 
+func TestResolve_LatestPicksHighestLocalSource(t *testing.T) {
+	r := NewResolver("/foundry")
+	srcs := []source.Source{
+		&fakeSource{kind: source.KindZip, version: "14.360.0"},
+		&fakeSource{kind: source.KindFolder, version: "14.361.2"},
+	}
+	plan, err := r.Resolve(context.Background(), VersionLatest, nil, srcs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, _ := plan.Source.Probe(context.Background())
+	if v != "14.361.2" {
+		t.Errorf("want 14.361.2, got %q", v)
+	}
+}
+
+func TestResolve_LatestPrefersLocalOverURL(t *testing.T) {
+	r := NewResolver("/foundry")
+	srcs := []source.Source{
+		&fakeSource{kind: source.KindZip, version: "14.361.2"},
+		&fakeSource{kind: source.KindURL, probeEr: source.ErrVersionUnknown},
+	}
+	plan, err := r.Resolve(context.Background(), VersionLatest, nil, srcs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Source.Kind() != source.KindZip {
+		t.Errorf("want zip (local-first), got %v", plan.Source.Kind())
+	}
+}
+
+func TestResolve_LatestFallsBackToCandidate(t *testing.T) {
+	r := NewResolver("/foundry")
+	cands := []Candidate{candFor("14.361.0"), candFor("14.360.0")}
+	plan, err := r.Resolve(context.Background(), VersionLatest, cands, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Action != ActionUseExisting {
+		t.Fatalf("want UseExisting, got %v", plan.Action)
+	}
+	if plan.Candidate.Version != "14.361.0" {
+		t.Errorf("want 14.361.0, got %q", plan.Candidate.Version)
+	}
+}
+
+func TestResolve_LatestFallsBackToURL(t *testing.T) {
+	r := NewResolver("/foundry")
+	srcs := []source.Source{
+		&fakeSource{kind: source.KindURL, probeEr: source.ErrVersionUnknown},
+	}
+	plan, err := r.Resolve(context.Background(), VersionLatest, nil, srcs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Source.Kind() != source.KindURL {
+		t.Errorf("want URL fallback, got %v", plan.Source.Kind())
+	}
+}
+
+func TestResolve_LatestNoLocalNoRemote(t *testing.T) {
+	r := NewResolver("/foundry")
+	_, err := r.Resolve(context.Background(), VersionLatest, nil, nil)
+	if !errors.Is(err, source.ErrNoMatch) {
+		t.Fatalf("want ErrNoMatch, got %v", err)
+	}
+}
+
 func TestVersionsEqual(t *testing.T) {
 	cases := []struct {
 		a, b string

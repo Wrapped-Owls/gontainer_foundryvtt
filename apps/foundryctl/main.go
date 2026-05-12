@@ -31,7 +31,7 @@ func main() {
 	case "version":
 		cmd.Version()
 	default:
-		fmt.Fprintf(os.Stderr, "foundryctl: unknown subcommand %q\n", sub)
+		_, _ = fmt.Fprintf(os.Stderr, "foundryctl: unknown subcommand %q\n", sub)
 		os.Exit(2)
 	}
 }
