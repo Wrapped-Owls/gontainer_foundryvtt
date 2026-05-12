@@ -34,7 +34,7 @@ func (m *Manager) OnFailure(exitCode int) (Decision, error) {
 	now := m.now()
 	next := State{
 		ConsecutiveFailures: n,
-		LastFailureTS:       now.UTC().Format("2006-01-02T15:04:05Z"),
+		LastFailureTS:       now.UTC().Format(time.RFC3339),
 	}
 	if err := writeStateAtomic(statePath, next); err != nil {
 		// Mirror the bash fallback: if we can't persist, sleep indefinitely.

@@ -22,7 +22,7 @@ type handler struct {
 func (h *handler) Enabled(_ context.Context, lvl Level) bool { return lvl >= h.level }
 
 func (h *handler) Handle(_ context.Context, r slog.Record) error {
-	ts := h.now().Format("2006-01-02 15:04:05")
+	ts := h.now().Format(time.DateTime)
 	level := strings.ToLower(r.Level.String())
 	colored := level
 	if h.color {
