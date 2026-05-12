@@ -2,6 +2,7 @@ package forge
 
 import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/source"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 // Action enumerates the outcomes the resolver can produce.
@@ -21,12 +22,12 @@ type Plan struct {
 	Candidate       *Candidate    // ActionUseExisting
 	Source          source.Source // ActionInstallFromSource
 	TargetRoot      string        // ActionInstallFromSource
-	ResolvedVersion string        // best-effort known version
+	ResolvedVersion version.Version
 }
 
 // Install is fourcery's name for "the install we settled on": its
 // final absolute path and the version detected inside it.
 type Install struct {
 	Root    string
-	Version string
+	Version version.Version
 }

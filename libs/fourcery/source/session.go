@@ -9,23 +9,24 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/archive"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/auth"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/release"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 // sessionSource is "I know the version and have credentials → fetch a
 // presigned URL via auth + release and then download it." It is the
 // authenticated counterpart to urlSource.
 type sessionSource struct {
-	version  string
+	ver      version.Version
 	session  string
 	username string
 	password string
 }
 
 // NewSession constructs a sessionSource. Either session or
-// username+password must be non-empty; version must be non-empty.
-func NewSession(version, session, username, password string) Source {
+// username+password must be non-empty; ver must be non-empty.
+func NewSession(ver, session, username, password string) Source {
 	return &sessionSource{
-		version:  version,
+		ver:      version.Parse(ver),
 		session:  session,
 		username: username,
 		password: password,
@@ -36,22 +37,22 @@ func (s *sessionSource) Kind() Kind { return KindSession }
 
 func (s *sessionSource) Describe() string { return "authenticated session" }
 
-func (s *sessionSource) Probe(_ context.Context) (string, error) {
-	if s.version == "" {
-		return "", ErrVersionUnknown
+func (s *sessionSource) Probe(_ context.Context) (version.Version, error) {
+	if s.ver.IsZero() {
+		return version.Version{}, ErrVersionUnknown
 	}
-	return s.version, nil
+	return s.ver, nil
 }
 
 func (s *sessionSource) Materialise(ctx context.Context, dst string) (Result, error) {
-	if s.version == "" {
+	if s.ver.IsZero() {
 		return Result{}, fmt.Errorf("%w: version", ErrEmptyInput)
 	}
 	sess, err := s.login(ctx)
 	if err != nil {
 		return Result{}, fmt.Errorf("session login: %w", err)
 	}
-	url, err := release.Fetch(ctx, sess, s.version, release.FetchOptions{})
+	url, err := release.Fetch(ctx, sess, s.ver.String(), release.FetchOptions{})
 	if err != nil {
 		return Result{}, fmt.Errorf("session release fetch: %w", err)
 	}
@@ -63,7 +64,7 @@ func (s *sessionSource) Materialise(ctx context.Context, dst string) (Result, er
 	if _, err = archive.Extract(zipPath, dst); err != nil {
 		return Result{}, fmt.Errorf("session extract: %w", err)
 	}
-	return Result{Kind: KindSession, Version: s.version}, nil
+	return Result{Kind: KindSession, Version: s.ver}, nil
 }
 
 func (s *sessionSource) login(ctx context.Context) (*auth.Session, error) {

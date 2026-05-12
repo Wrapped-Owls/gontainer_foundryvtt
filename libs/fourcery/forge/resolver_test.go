@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/source"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 // fakeSource is a test-only source whose Probe and Kind are configurable.
@@ -17,18 +18,18 @@ type fakeSource struct {
 
 func (f *fakeSource) Kind() source.Kind { return f.kind }
 func (f *fakeSource) Describe() string  { return "fake-" + string(f.kind) }
-func (f *fakeSource) Probe(context.Context) (string, error) {
+func (f *fakeSource) Probe(context.Context) (version.Version, error) {
 	if f.probeEr != nil {
-		return "", f.probeEr
+		return version.Version{}, f.probeEr
 	}
-	return f.version, nil
+	return version.Parse(f.version), nil
 }
 
 func (f *fakeSource) Materialise(context.Context, string) (source.Result, error) {
-	return source.Result{Kind: f.kind, Version: f.version}, nil
+	return source.Result{Kind: f.kind, Version: version.Parse(f.version)}, nil
 }
 
-func candFor(version string) Candidate { return newCandidate("/foundry/"+version, version) }
+func candFor(ver string) Candidate { return newCandidate("/foundry/"+ver, ver) }
 
 func TestResolve_DesiredMatchesCandidate(t *testing.T) {
 	r := NewResolver("/foundry")
@@ -114,7 +115,7 @@ func TestResolve_UndesiredLocalPicksHighest(t *testing.T) {
 		t.Fatal(err)
 	}
 	v, _ := plan.Source.Probe(context.Background())
-	if v != "14.361.2" {
+	if v.String() != "14.361.2" {
 		t.Errorf("want 14.361.2 local source, got %q", v)
 	}
 }
@@ -129,7 +130,7 @@ func TestResolve_UndesiredFallsBackToLatestInstalled(t *testing.T) {
 	if plan.Action != ActionUseExisting {
 		t.Fatalf("want UseExisting, got %v", plan.Action)
 	}
-	if plan.Candidate.Version != "14.361.0" {
+	if plan.Candidate.Version.String() != "14.361.0" {
 		t.Errorf("want 14.361.0, got %q", plan.Candidate.Version)
 	}
 }
@@ -159,7 +160,7 @@ func TestResolve_LatestPicksHighestLocalSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	v, _ := plan.Source.Probe(context.Background())
-	if v != "14.361.2" {
+	if v.String() != "14.361.2" {
 		t.Errorf("want 14.361.2, got %q", v)
 	}
 }
@@ -189,7 +190,7 @@ func TestResolve_LatestFallsBackToCandidate(t *testing.T) {
 	if plan.Action != ActionUseExisting {
 		t.Fatalf("want UseExisting, got %v", plan.Action)
 	}
-	if plan.Candidate.Version != "14.361.0" {
+	if plan.Candidate.Version.String() != "14.361.0" {
 		t.Errorf("want 14.361.0, got %q", plan.Candidate.Version)
 	}
 }
@@ -213,26 +214,5 @@ func TestResolve_LatestNoLocalNoRemote(t *testing.T) {
 	_, err := r.Resolve(context.Background(), VersionLatest, nil, nil)
 	if !errors.Is(err, source.ErrNoMatch) {
 		t.Fatalf("want ErrNoMatch, got %v", err)
-	}
-}
-
-func TestVersionsEqual(t *testing.T) {
-	cases := []struct {
-		a, b string
-		want bool
-	}{
-		{"14.361.2", "14.361.2", true},
-		{"14.361.2", "14.361", true},
-		{"14.361.0", "14.361.2", false}, // desired carries patch, requires exact
-		{"14.361.2", "14.362.0", false},
-		{"v14.361", "14.361", true},
-		{"", "", true},
-		{"14.361", "", false},
-	}
-	for _, c := range cases {
-		got := versionsEqual(c.a, c.b)
-		if got != c.want {
-			t.Errorf("versionsEqual(%q, %q) = %v, want %v", c.a, c.b, got, c.want)
-		}
 	}
 }

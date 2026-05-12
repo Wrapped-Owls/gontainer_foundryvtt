@@ -11,6 +11,7 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/internal/probe"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/source"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 // Forge is the orchestrator: scan candidates, resolve a Plan, then
@@ -79,27 +80,27 @@ func (f *Forge) materialise(ctx context.Context, p Plan) (Install, error) {
 	if err != nil {
 		return Install{}, fmt.Errorf("forge: materialise: %w", err)
 	}
-	version := res.Version
-	if version == "" {
+	ver := res.Version
+	if ver.IsZero() {
 		// Source didn't report; introspect the staged tree.
-		if v, perr := probe.Folder(staging); perr == nil {
-			version = v
+		if raw, perr := probe.Folder(staging); perr == nil {
+			ver = version.Parse(raw)
 		}
 	}
 	target := p.TargetRoot
 	if target == "" {
-		if version == "" {
+		if ver.IsZero() {
 			return Install{}, errors.New(
 				"forge: install completed but version unknown and no target specified",
 			)
 		}
-		target = filepath.Join(f.installRoot, normalizeVersionDir(version))
+		target = filepath.Join(f.installRoot, ver.DirName())
 	}
 	if err = swapInto(staging, target); err != nil {
 		return Install{}, err
 	}
 	cleanedStaging = true
-	inst := Install{Root: target, Version: version}
+	inst := Install{Root: target, Version: ver}
 	f.observer.Notify(EventInstalled{Install: inst})
 	return inst, nil
 }

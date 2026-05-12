@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/source"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 // runRules
@@ -12,7 +13,7 @@ import (
 func TestRunRules_FirstSucceeds(t *testing.T) {
 	t.Parallel()
 
-	want := Plan{Action: ActionUseExisting, ResolvedVersion: "14.361.2"}
+	want := Plan{Action: ActionUseExisting, ResolvedVersion: version.Parse("14.361.2")}
 	first := func(_ context.Context, _ []Candidate, _ []source.Source) (Plan, bool) {
 		return want, true
 	}
@@ -33,7 +34,7 @@ func TestRunRules_FirstSucceeds(t *testing.T) {
 func TestRunRules_SecondSucceeds(t *testing.T) {
 	t.Parallel()
 
-	want := Plan{Action: ActionUseExisting, ResolvedVersion: "14.361.2"}
+	want := Plan{Action: ActionUseExisting, ResolvedVersion: version.Parse("14.361.2")}
 	skip := func(_ context.Context, _ []Candidate, _ []source.Source) (Plan, bool) { return Plan{}, false }
 	hit := func(_ context.Context, _ []Candidate, _ []source.Source) (Plan, bool) { return want, true }
 
@@ -91,7 +92,7 @@ func TestRuleUseMatchingCandidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			r := ruleUseMatchingCandidate(tt.desired)
+			r := ruleUseMatchingCandidate(version.Parse(tt.desired))
 			plan, ok := r(context.Background(), tt.candidates, nil)
 			if ok != tt.wantOk {
 				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
@@ -102,7 +103,7 @@ func TestRuleUseMatchingCandidate(t *testing.T) {
 			if plan.Action != ActionUseExisting {
 				t.Errorf("action = %v, want UseExisting", plan.Action)
 			}
-			if plan.ResolvedVersion != tt.wantVer {
+			if plan.ResolvedVersion.String() != tt.wantVer {
 				t.Errorf("version = %q, want %q", plan.ResolvedVersion, tt.wantVer)
 			}
 		})
@@ -138,8 +139,10 @@ func TestRuleMatchingSource(t *testing.T) {
 		{
 			name:    "probe errors are skipped",
 			desired: "14.361.2",
-			sources: []source.Source{&fakeSource{kind: source.KindZip, probeEr: source.ErrVersionUnknown}},
-			wantOk:  false,
+			sources: []source.Source{
+				&fakeSource{kind: source.KindZip, probeEr: source.ErrVersionUnknown},
+			},
+			wantOk: false,
 		},
 		{
 			name:    "no sources",
@@ -151,7 +154,14 @@ func TestRuleMatchingSource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			plan, ok := ruleMatchingSource(r, tt.desired)(context.Background(), nil, tt.sources)
+			plan, ok := ruleMatchingSource(
+				r,
+				version.Parse(tt.desired),
+			)(
+				context.Background(),
+				nil,
+				tt.sources,
+			)
 			if ok != tt.wantOk {
 				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
 			}
@@ -174,9 +184,11 @@ func TestRuleUnknownVersionSource(t *testing.T) {
 		wantOk  bool
 	}{
 		{
-			name:    "url with unknown version",
-			sources: []source.Source{&fakeSource{kind: source.KindURL, probeEr: source.ErrVersionUnknown}},
-			wantOk:  true,
+			name: "url with unknown version",
+			sources: []source.Source{
+				&fakeSource{kind: source.KindURL, probeEr: source.ErrVersionUnknown},
+			},
+			wantOk: true,
 		},
 		{
 			name:    "source with known version is skipped",
@@ -192,7 +204,14 @@ func TestRuleUnknownVersionSource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			plan, ok := ruleUnknownVersionSource(r, "14.361.2")(context.Background(), nil, tt.sources)
+			plan, ok := ruleUnknownVersionSource(
+				r,
+				version.Parse("14.361.2"),
+			)(
+				context.Background(),
+				nil,
+				tt.sources,
+			)
 			if ok != tt.wantOk {
 				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
 			}
@@ -256,7 +275,7 @@ func TestRuleHighestLocalSource(t *testing.T) {
 			if !ok {
 				return
 			}
-			if plan.ResolvedVersion != tt.wantVer {
+			if plan.ResolvedVersion.String() != tt.wantVer {
 				t.Errorf("version = %q, want %q", plan.ResolvedVersion, tt.wantVer)
 			}
 		})
@@ -299,7 +318,7 @@ func TestRuleLatestCandidate(t *testing.T) {
 			if plan.Action != ActionUseExisting {
 				t.Errorf("action = %v, want UseExisting", plan.Action)
 			}
-			if plan.ResolvedVersion != tt.wantVer {
+			if plan.ResolvedVersion.String() != tt.wantVer {
 				t.Errorf("version = %q, want %q", plan.ResolvedVersion, tt.wantVer)
 			}
 		})
@@ -319,16 +338,20 @@ func TestRuleFirstSourceOfKind(t *testing.T) {
 		wantOk  bool
 	}{
 		{
-			name:    "matching kind found",
-			kind:    source.KindURL,
-			sources: []source.Source{&fakeSource{kind: source.KindURL, probeEr: source.ErrVersionUnknown}},
-			wantOk:  true,
+			name: "matching kind found",
+			kind: source.KindURL,
+			sources: []source.Source{
+				&fakeSource{kind: source.KindURL, probeEr: source.ErrVersionUnknown},
+			},
+			wantOk: true,
 		},
 		{
-			name:    "no matching kind",
-			kind:    source.KindSession,
-			sources: []source.Source{&fakeSource{kind: source.KindURL, probeEr: source.ErrVersionUnknown}},
-			wantOk:  false,
+			name: "no matching kind",
+			kind: source.KindSession,
+			sources: []source.Source{
+				&fakeSource{kind: source.KindURL, probeEr: source.ErrVersionUnknown},
+			},
+			wantOk: false,
 		},
 		{
 			name:    "no sources",

@@ -9,6 +9,7 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/applier"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/ledger"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/manifest"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 type patchesStep struct{}
@@ -28,11 +29,11 @@ func (patchesStep) Apply(ctx context.Context, s *State, logger *slog.Logger) err
 		)
 		return nil
 	}
-	version := s.Install.Version
-	if version == "" {
-		version = s.App.Install.Version
+	ver := s.Install.Version
+	if ver.IsZero() {
+		ver = version.Parse(s.App.Install.Version)
 	}
-	patches, err := m.Applicable(version)
+	patches, err := m.Applicable(ver.String())
 	if err != nil {
 		logger.Warn("patch filtering failed; skipping", "err", err)
 		return nil

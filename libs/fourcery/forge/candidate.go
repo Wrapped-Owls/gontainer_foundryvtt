@@ -9,9 +9,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
-
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/internal/probe"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 // Candidate describes an existing FoundryVTT install discovered under
@@ -20,20 +19,13 @@ type Candidate struct {
 	// Path is the absolute path to the install directory (the one
 	// whose resources/app/package.json was read).
 	Path string
-	// Version is the canonical semver string when parseable, or the
-	// raw package.json value otherwise.
-	Version string
-	// Parsed is non-nil when Version parsed as semver.
-	Parsed *semver.Version
+	// Version holds the parsed install version. It is zero when the
+	// version could not be determined.
+	Version version.Version
 }
 
-func newCandidate(path, version string) Candidate {
-	c := Candidate{Path: path, Version: version}
-	if v, err := semver.NewVersion(version); err == nil {
-		c.Parsed = v
-		c.Version = v.String()
-	}
-	return c
+func newCandidate(path, ver string) Candidate {
+	return Candidate{Path: path, Version: version.Parse(ver)}
 }
 
 // scanCandidates walks installRoot looking for installs (a directory
@@ -69,17 +61,10 @@ func scanCandidates(installRoot string) ([]Candidate, error) {
 			out = append(out, c)
 		}
 	}
+	// Sort newest-first; b.Version.Compare(a.Version) > 0 means b is newer
+	// than a, so using it as the cmp value places b before a.
 	slices.SortStableFunc(out, func(a, b Candidate) int {
-		if a.Parsed == nil && b.Parsed == nil {
-			return 0
-		}
-		if a.Parsed == nil {
-			return 1 // non-semver sorts last
-		}
-		if b.Parsed == nil {
-			return -1 // non-semver sorts last
-		}
-		return b.Parsed.Compare(a.Parsed) // newest first (descending)
+		return b.Version.Compare(a.Version)
 	})
 	return out, nil
 }
@@ -94,76 +79,19 @@ func readCandidate(path string) (Candidate, bool, error) {
 		}
 		return Candidate{}, false, fmt.Errorf("forge: stat %s: %w", mainPath, err)
 	}
-	version, err := probe.Folder(path)
+	ver, err := probe.Folder(path)
 	if err != nil && !errors.Is(err, probe.ErrNoVersion) {
 		return Candidate{}, false, fmt.Errorf("forge: probe %s: %w", path, err)
 	}
-	return newCandidate(path, version), true, nil
+	return newCandidate(path, ver), true, nil
 }
 
 // matchCandidate returns the candidate satisfying desired, or nil.
-// When desired has a patch component, an exact semver match is
-// required. Otherwise the major.minor must match.
-func matchCandidate(candidates []Candidate, desired string) *Candidate {
-	parsed, err := semver.NewVersion(desired)
-	if err != nil {
-		for i := range candidates {
-			if candidates[i].Version == strings.TrimSpace(desired) {
-				return &candidates[i]
-			}
-		}
-		return nil
-	}
-	requirePatch := versionHasPatch(desired)
+func matchCandidate(candidates []Candidate, desired version.Version) *Candidate {
 	for i := range candidates {
-		c := &candidates[i]
-		if c.Parsed == nil {
-			if c.Version == desired {
-				return c
-			}
-			continue
-		}
-		if requirePatch {
-			if c.Parsed.Equal(parsed) {
-				return c
-			}
-			continue
-		}
-		if c.Parsed.Major() == parsed.Major() && c.Parsed.Minor() == parsed.Minor() {
-			return c
+		if candidates[i].Version.Matches(desired) {
+			return &candidates[i]
 		}
 	}
 	return nil
-}
-
-// versionsEqual returns true when actual and desired refer to the same
-// install — equal semver when both parse, equal patch when desired
-// requires it, or equal trimmed strings otherwise.
-func versionsEqual(actual, desired string) bool {
-	if actual == "" || desired == "" {
-		return actual == desired
-	}
-	a, errA := semver.NewVersion(actual)
-	d, errD := semver.NewVersion(desired)
-	if errA != nil || errD != nil {
-		return strings.TrimSpace(actual) == strings.TrimSpace(desired)
-	}
-	if versionHasPatch(desired) {
-		return a.Equal(d)
-	}
-	return a.Major() == d.Major() && a.Minor() == d.Minor()
-}
-
-func versionHasPatch(v string) bool {
-	return strings.Count(strings.TrimSpace(v), ".") >= 2
-}
-
-// normalizeVersionDir returns the canonical subdirectory name for an
-// install of the given version: "foundryvtt_v<semver>" when parseable,
-// "foundryvtt_v<raw>" otherwise.
-func normalizeVersionDir(version string) string {
-	if parsed, err := semver.NewVersion(version); err == nil {
-		return "foundryvtt_v" + parsed.String()
-	}
-	return "foundryvtt_v" + strings.TrimSpace(version)
 }

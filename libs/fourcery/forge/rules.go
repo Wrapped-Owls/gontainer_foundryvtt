@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/source"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 // rule is a single resolution attempt. It returns (Plan, true) when it
@@ -12,7 +13,12 @@ import (
 type rule func(ctx context.Context, candidates []Candidate, sources []source.Source) (Plan, bool)
 
 // runRules executes rules in order and returns the first successful Plan.
-func runRules(ctx context.Context, candidates []Candidate, sources []source.Source, rules []rule) (Plan, bool) {
+func runRules(
+	ctx context.Context,
+	candidates []Candidate,
+	sources []source.Source,
+	rules []rule,
+) (Plan, bool) {
 	for _, r := range rules {
 		if plan, ok := r(ctx, candidates, sources); ok {
 			return plan, true
@@ -23,7 +29,7 @@ func runRules(ctx context.Context, candidates []Candidate, sources []source.Sour
 
 // ruleUseMatchingCandidate returns the first installed candidate that
 // satisfies desired.
-func ruleUseMatchingCandidate(desired string) rule {
+func ruleUseMatchingCandidate(desired version.Version) rule {
 	return func(_ context.Context, candidates []Candidate, _ []source.Source) (Plan, bool) {
 		match := matchCandidate(candidates, desired)
 		if match == nil {
@@ -38,14 +44,14 @@ func ruleUseMatchingCandidate(desired string) rule {
 }
 
 // ruleMatchingSource returns the first source whose Probe equals desired.
-func ruleMatchingSource(r *Resolver, desired string) rule {
+func ruleMatchingSource(r *Resolver, desired version.Version) rule {
 	return func(ctx context.Context, _ []Candidate, sources []source.Source) (Plan, bool) {
 		for _, s := range sources {
 			v, err := s.Probe(ctx)
 			if err != nil {
 				continue
 			}
-			if versionsEqual(v, desired) {
+			if v.Matches(desired) {
 				return r.planInstall(s, desired), true
 			}
 		}
@@ -55,7 +61,7 @@ func ruleMatchingSource(r *Resolver, desired string) rule {
 
 // ruleUnknownVersionSource returns the first source that cannot report
 // its version without materialising (typically a presigned URL).
-func ruleUnknownVersionSource(r *Resolver, desired string) rule {
+func ruleUnknownVersionSource(r *Resolver, desired version.Version) rule {
 	return func(ctx context.Context, _ []Candidate, sources []source.Source) (Plan, bool) {
 		for _, s := range sources {
 			if _, err := s.Probe(ctx); errors.Is(err, source.ErrVersionUnknown) {
@@ -71,7 +77,7 @@ func ruleUnknownVersionSource(r *Resolver, desired string) rule {
 func ruleHighestLocalSource(r *Resolver) rule {
 	return func(ctx context.Context, _ []Candidate, sources []source.Source) (Plan, bool) {
 		var best source.Source
-		var bestVer string
+		var bestVer version.Version
 		for _, s := range sources {
 			if s.Kind() != source.KindZip && s.Kind() != source.KindFolder {
 				continue
@@ -80,7 +86,7 @@ func ruleHighestLocalSource(r *Resolver) rule {
 			if err != nil {
 				continue
 			}
-			if best == nil || compareSemver(v, bestVer) > 0 {
+			if best == nil || v.Compare(bestVer) > 0 {
 				best = s
 				bestVer = v
 			}
@@ -114,7 +120,7 @@ func ruleFirstSourceOfKind(r *Resolver, k source.Kind) rule {
 	return func(_ context.Context, _ []Candidate, sources []source.Source) (Plan, bool) {
 		for _, s := range sources {
 			if s.Kind() == k {
-				return r.planInstall(s, ""), true
+				return r.planInstall(s, version.Version{}), true
 			}
 		}
 		return Plan{}, false

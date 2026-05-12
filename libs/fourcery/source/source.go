@@ -3,6 +3,8 @@ package source
 import (
 	"context"
 	"errors"
+
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 // Kind enumerates the concrete Source implementations.
@@ -29,7 +31,7 @@ type Source interface {
 	// Probe returns the version this Source would install. It must
 	// not write to disk. Returns ErrVersionUnknown when the version
 	// cannot be determined without materialising.
-	Probe(ctx context.Context) (string, error)
+	Probe(ctx context.Context) (version.Version, error)
 	// Materialise places the install tree into dst. dst must already
 	// exist and be empty. The returned Result reports the version
 	// actually written (which may differ from a Probe result for
@@ -39,7 +41,7 @@ type Source interface {
 
 // Result reports the outcome of a successful Materialise call.
 type Result struct {
-	Version string
+	Version version.Version
 	Kind    Kind
 }
 

@@ -4,70 +4,42 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
-func TestVersionHasPatch(t *testing.T) {
-	cases := []struct {
-		v    string
-		want bool
-	}{
-		{"14.361", false},
-		{"14.361.0", true},
-		{"14.361.2", true},
-		{"14", false},
-		{"", false},
-	}
-	for _, c := range cases {
-		if got := versionHasPatch(c.v); got != c.want {
-			t.Errorf("versionHasPatch(%q) = %v, want %v", c.v, got, c.want)
-		}
-	}
-}
-
-func TestNormalizeVersionDir(t *testing.T) {
-	cases := []struct {
-		v    string
-		want string
-	}{
-		{"14.361.2", "foundryvtt_v14.361.2"},
-		{"14.361", "foundryvtt_v14.361.0"},
-		{"nightly", "foundryvtt_vnightly"},
-	}
-	for _, c := range cases {
-		if got := normalizeVersionDir(c.v); got != c.want {
-			t.Errorf("normalizeVersionDir(%q) = %q, want %q", c.v, got, c.want)
-		}
-	}
-}
-
 func TestMatchCandidate(t *testing.T) {
+	t.Parallel()
+
 	candidates := []Candidate{
 		newCandidate("/a", "14.361.0"),
 		newCandidate("/b", "14.362.0"),
 		newCandidate("/c", "nightly"),
 	}
 
-	t.Run("exact patch match", func(t *testing.T) {
-		c := matchCandidate(candidates, "14.361.0")
-		if c == nil || c.Path != "/a" {
-			t.Errorf("want /a, got %v", c)
-		}
-	})
-	t.Run("major.minor match no patch", func(t *testing.T) {
-		c := matchCandidate(candidates, "14.361")
-		if c == nil || c.Path != "/a" {
-			t.Errorf("want /a, got %v", c)
-		}
-	})
+	tests := []struct {
+		name     string
+		desired  string
+		wantPath string
+	}{
+		{"exact patch match", "14.361.0", "/a"},
+		{"major.minor match no patch", "14.361", "/a"},
+		{"raw string match", "nightly", "/c"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			c := matchCandidate(candidates, version.Parse(tt.desired))
+			if c == nil || c.Path != tt.wantPath {
+				t.Errorf("want path %q, got %v", tt.wantPath, c)
+			}
+		})
+	}
+
 	t.Run("no match", func(t *testing.T) {
-		if matchCandidate(candidates, "14.999.0") != nil {
+		t.Parallel()
+		if matchCandidate(candidates, version.Parse("14.999.0")) != nil {
 			t.Error("expected nil")
-		}
-	})
-	t.Run("raw string match", func(t *testing.T) {
-		c := matchCandidate(candidates, "nightly")
-		if c == nil || c.Path != "/c" {
-			t.Errorf("want /c, got %v", c)
 		}
 	})
 }
@@ -104,7 +76,7 @@ func TestScanCandidates_SortsNewestFirst(t *testing.T) {
 	}
 	wantOrder := []string{"14.362.0", "14.361.0", "14.360.0"}
 	for i, want := range wantOrder {
-		if got[i].Version != want {
+		if got[i].Version.String() != want {
 			t.Errorf("candidates[%d].Version = %q, want %q", i, got[i].Version, want)
 		}
 	}

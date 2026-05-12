@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/source"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 // VersionLatest is a sentinel value for the desired version that means
@@ -50,10 +51,11 @@ func (r *Resolver) Resolve(
 			ruleLatestCandidate(),
 		}
 	default:
+		desiredVer := version.Parse(desired)
 		rules = []rule{
-			ruleUseMatchingCandidate(desired),
-			ruleMatchingSource(r, desired),
-			ruleUnknownVersionSource(r, desired),
+			ruleUseMatchingCandidate(desiredVer),
+			ruleMatchingSource(r, desiredVer),
+			ruleUnknownVersionSource(r, desiredVer),
 		}
 	}
 
@@ -63,10 +65,10 @@ func (r *Resolver) Resolve(
 	return Plan{}, r.errNoMatch(desired)
 }
 
-func (r *Resolver) planInstall(s source.Source, desired string) Plan {
+func (r *Resolver) planInstall(s source.Source, desired version.Version) Plan {
 	target := r.installRoot
-	if desired != "" {
-		target = filepath.Join(r.installRoot, normalizeVersionDir(desired))
+	if !desired.IsZero() {
+		target = filepath.Join(r.installRoot, desired.DirName())
 	}
 	return Plan{
 		Action:          ActionInstallFromSource,
