@@ -115,7 +115,7 @@ func TestURLSource_Materialise(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	s := NewURL(srv.URL, http.DefaultClient, "14.361.9")
+	s := NewURL(srv.URL, http.DefaultClient, "14.361.9", "")
 	dst := t.TempDir()
 	res, err := s.Materialise(context.Background(), dst)
 	if err != nil {
@@ -135,7 +135,7 @@ func TestURLSource_Materialise_HTTPError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	s := NewURL(srv.URL, http.DefaultClient, "")
+	s := NewURL(srv.URL, http.DefaultClient, "", "")
 	_, err := s.Materialise(context.Background(), t.TempDir())
 	if err == nil {
 		t.Error("expected error on HTTP 410")
@@ -143,7 +143,7 @@ func TestURLSource_Materialise_HTTPError(t *testing.T) {
 }
 
 func TestURLSource_Materialise_EmptyURL(t *testing.T) {
-	s := NewURL("", http.DefaultClient, "")
+	s := NewURL("", http.DefaultClient, "", "")
 	_, err := s.Materialise(context.Background(), t.TempDir())
 	if err == nil {
 		t.Error("expected error for empty URL")

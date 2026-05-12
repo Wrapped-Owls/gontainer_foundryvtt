@@ -6,19 +6,27 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/archive"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/internal/copytree"
 )
 
 type urlSource struct {
 	url          string
 	client       HTTPDoer
 	labelVersion string
+	cacheDir     string
 }
 
-func NewURL(url string, client HTTPDoer, labelVersion string) Source {
-	return &urlSource{url: url, client: client, labelVersion: labelVersion}
+func NewURL(url string, client HTTPDoer, labelVersion, cacheDir string) Source {
+	return &urlSource{
+		url:          url,
+		client:       client,
+		labelVersion: labelVersion,
+		cacheDir:     cacheDir,
+	}
 }
 
 func (u *urlSource) Kind() Kind { return KindURL }
@@ -41,6 +49,14 @@ func (u *urlSource) Materialise(ctx context.Context, dst string) (Result, error)
 		return Result{}, fmt.Errorf("url: %w", err)
 	}
 	defer func() { _ = os.Remove(zipPath) }()
+
+	if u.cacheDir != "" && u.labelVersion != "" {
+		cached := filepath.Join(u.cacheDir, "foundryvtt_v"+u.labelVersion+".zip")
+		if cerr := copytree.CopyFile(zipPath, cached); cerr != nil {
+			return Result{}, fmt.Errorf("url: cache to sources: %w", cerr)
+		}
+	}
+
 	if _, err = archive.Extract(zipPath, dst); err != nil {
 		return Result{}, fmt.Errorf("url extract: %w", err)
 	}

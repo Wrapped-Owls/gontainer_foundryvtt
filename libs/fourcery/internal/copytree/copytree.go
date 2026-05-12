@@ -52,6 +52,8 @@ func Copy(src, dst string) error {
 	})
 }
 
+func CopyFile(src, dst string) error { return copyFile(src, dst, fsperm.File) }
+
 func copyFile(src, dst string, mode fs.FileMode) error {
 	if mode == 0 {
 		mode = fsperm.File

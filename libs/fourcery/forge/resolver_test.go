@@ -136,7 +136,7 @@ func TestResolve_UndesiredFallsBackToLatestInstalled(t *testing.T) {
 func TestResolve_DesiredMatchesURLLabel(t *testing.T) {
 	r := NewResolver("/foundry")
 	srcs := []source.Source{
-		source.NewURL("https://example.invalid/x.zip", nil, "14.361.2"),
+		source.NewURL("https://example.invalid/x.zip", nil, "14.361.2", ""),
 	}
 	plan, err := r.Resolve(context.Background(), "14.361.2", nil, srcs)
 	if err != nil {
