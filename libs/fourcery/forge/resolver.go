@@ -2,12 +2,14 @@ package forge
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/source"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
+
+const VersionLatest = "latest" // prefer highest local artefact, else fall back to remote sources
 
 type Resolver struct {
 	installRoot string
@@ -23,51 +25,40 @@ func (r *Resolver) Resolve(
 	candidates []Candidate,
 	sources []source.Source,
 ) (Plan, error) {
-	if desired != "" {
-		if match := matchCandidate(candidates, desired); match != nil {
-			return Plan{
-				Action:          ActionUseExisting,
-				Candidate:       match,
-				ResolvedVersion: match.Version,
-			}, nil
+	var rules []rule
+	switch desired {
+	case VersionLatest:
+		rules = []rule{
+			ruleHighestLocalSource(r),
+			ruleLatestCandidate(),
+			ruleFirstSourceOfKind(r, source.KindURL),
+			ruleFirstSourceOfKind(r, source.KindSession),
 		}
-		if s := firstMatchingSource(ctx, sources, desired); s != nil {
-			return r.planInstall(s, desired), nil
+	case "":
+		rules = []rule{
+			ruleFirstSourceOfKind(r, source.KindURL),
+			ruleHighestLocalSource(r),
+			ruleLatestCandidate(),
 		}
-		if s := firstUnknownVersionSource(ctx, sources); s != nil {
-			return r.planInstall(s, desired), nil
+	default:
+		desiredVer := version.Parse(desired)
+		rules = []rule{
+			ruleUseMatchingCandidate(desiredVer),
+			ruleMatchingSource(r, desiredVer),
+			ruleUnknownVersionSource(r, desiredVer),
 		}
-		return Plan{}, fmt.Errorf(
-			"%w: no source matches version %q",
-			source.ErrNoMatch, desired,
-		)
 	}
 
-	if s := firstSourceOfKind(sources, source.KindURL); s != nil {
-		return r.planInstall(s, ""), nil
+	if plan, ok := runRules(ctx, candidates, sources, rules); ok {
+		return plan, nil
 	}
-	if s := highestVersionLocalSource(ctx, sources); s != nil {
-		v, _ := s.Probe(ctx)
-		return r.planInstall(s, v), nil
-	}
-	if len(candidates) > 0 {
-		c := &candidates[0]
-		return Plan{
-			Action:          ActionUseExisting,
-			Candidate:       c,
-			ResolvedVersion: c.Version,
-		}, nil
-	}
-	return Plan{}, fmt.Errorf(
-		"%w: no installed candidate, no source, and no version requested",
-		source.ErrNoMatch,
-	)
+	return Plan{}, r.errNoMatch(desired)
 }
 
-func (r *Resolver) planInstall(s source.Source, desired string) Plan {
+func (r *Resolver) planInstall(s source.Source, desired version.Version) Plan {
 	target := r.installRoot
-	if desired != "" {
-		target = filepath.Join(r.installRoot, normalizeVersionDir(desired))
+	if !desired.IsZero() {
+		target = filepath.Join(r.installRoot, desired.DirName())
 	}
 	return Plan{
 		Action:          ActionInstallFromSource,
@@ -77,56 +68,19 @@ func (r *Resolver) planInstall(s source.Source, desired string) Plan {
 	}
 }
 
-func firstMatchingSource(
-	ctx context.Context,
-	sources []source.Source,
-	desired string,
-) source.Source {
-	for _, s := range sources {
-		v, err := s.Probe(ctx)
-		if err != nil {
-			continue
-		}
-		if versionsEqual(v, desired) {
-			return s
-		}
+func (r *Resolver) errNoMatch(desired string) error {
+	switch desired {
+	case "":
+		return fmt.Errorf(
+			"%w: no installed candidate, no source, and no version requested",
+			source.ErrNoMatch,
+		)
+	case VersionLatest:
+		return fmt.Errorf(
+			"%w: no local source, no installed candidate, and no remote source for %q",
+			source.ErrNoMatch, desired,
+		)
+	default:
+		return fmt.Errorf("%w: no source matches version %q", source.ErrNoMatch, desired)
 	}
-	return nil
-}
-
-func firstUnknownVersionSource(ctx context.Context, sources []source.Source) source.Source {
-	for _, s := range sources {
-		if _, err := s.Probe(ctx); errors.Is(err, source.ErrVersionUnknown) {
-			return s
-		}
-	}
-	return nil
-}
-
-func firstSourceOfKind(sources []source.Source, k source.Kind) source.Source {
-	for _, s := range sources {
-		if s.Kind() == k {
-			return s
-		}
-	}
-	return nil
-}
-
-func highestVersionLocalSource(ctx context.Context, sources []source.Source) source.Source {
-	var best source.Source
-	var bestVer string
-	for _, s := range sources {
-		if s.Kind() != source.KindZip && s.Kind() != source.KindFolder {
-			continue
-		}
-		v, err := s.Probe(ctx)
-		if err != nil {
-			continue
-		}
-		if best == nil || compareSemver(v, bestVer) > 0 {
-			best = s
-			bestVer = v
-		}
-	}
-	return best
 }
