@@ -35,7 +35,9 @@ func WriteAdminPassword(dataPath, plaintext, salt string) (bool, error) {
 	if err = os.MkdirAll(filepath.Dir(dest), fsperm.Dir); err != nil {
 		return false, err
 	}
-	if existing, err := os.ReadFile(dest); err == nil && string(existing) == hashed {
+
+	var existing []byte
+	if existing, err = os.ReadFile(dest); err == nil && string(existing) == hashed {
 		return false, nil
 	}
 	if err = os.WriteFile(dest, []byte(hashed), fsperm.Secret); err != nil {

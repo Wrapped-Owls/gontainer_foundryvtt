@@ -21,7 +21,7 @@ func TestKubernetesBypass(t *testing.T) {
 		t.Fatalf("unexpected decision: %+v", d)
 	}
 	// State file must NOT have been created.
-	if _, err := os.Stat(filepath.Join(m.CacheDir, stateFile)); !errors.Is(err, fs.ErrNotExist) {
+	if _, err = os.Stat(filepath.Join(m.CacheDir, stateFile)); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("state file should not exist: %v", err)
 	}
 }
@@ -66,7 +66,7 @@ func TestPersistentSchedule(t *testing.T) {
 		t.Fatal(err)
 	}
 	var raw map[string]any
-	if err := json.Unmarshal(b, &raw); err != nil {
+	if err = json.Unmarshal(b, &raw); err != nil {
 		t.Fatal(err)
 	}
 	if raw["consecutive_failures"].(float64) != 4 {

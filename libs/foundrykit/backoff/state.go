@@ -29,7 +29,8 @@ func writeStateAtomic(path string, s State) error {
 		return err
 	}
 	b = append(b, '\n')
-	if err := os.WriteFile(tmp, b, fsperm.File); err != nil {
+
+	if err = os.WriteFile(tmp, b, fsperm.File); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)

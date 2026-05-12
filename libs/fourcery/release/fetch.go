@@ -36,8 +36,9 @@ func Fetch(
 				return "", err
 			}
 		}
-		url, err := fetchOnce(ctx, sess, releaseURL)
-		if err == nil {
+
+		var url string
+		if url, err = fetchOnce(ctx, sess, releaseURL); err == nil {
 			return url, nil
 		}
 		lastErr = err
