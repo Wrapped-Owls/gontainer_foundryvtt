@@ -109,7 +109,7 @@ func TestFolderSource_Probe_FallbackToPackageJSON(t *testing.T) {
 }
 
 func TestURLSource_ProbeWithoutLabel(t *testing.T) {
-	s := NewURL("https://example.invalid/x.zip", nil, "")
+	s := NewURL("https://example.invalid/x.zip", nil, "", "")
 	_, err := s.Probe(context.Background())
 	if err != ErrVersionUnknown {
 		t.Errorf("want ErrVersionUnknown, got %v", err)
@@ -117,7 +117,7 @@ func TestURLSource_ProbeWithoutLabel(t *testing.T) {
 }
 
 func TestURLSource_ProbeWithLabel(t *testing.T) {
-	s := NewURL("https://example.invalid/x.zip", nil, "14.361.0")
+	s := NewURL("https://example.invalid/x.zip", nil, "14.361.0", "")
 	v, err := s.Probe(context.Background())
 	if err != nil {
 		t.Fatal(err)

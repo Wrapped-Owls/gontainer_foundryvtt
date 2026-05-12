@@ -50,7 +50,10 @@ func (r *Registry) Enumerate(_ context.Context) ([]Source, error) {
 		))
 	}
 	if r.cfg.ReleaseURL != "" {
-		out = append(out, NewURL(r.cfg.ReleaseURL, r.opts.HTTPClient, r.cfg.Version))
+		out = append(
+			out,
+			NewURL(r.cfg.ReleaseURL, r.opts.HTTPClient, r.cfg.Version, r.cfg.SourcesDir),
+		)
 	}
 	return out, nil
 }

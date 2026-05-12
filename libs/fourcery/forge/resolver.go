@@ -92,7 +92,11 @@ func (r *Resolver) planInstall(s source.Source, desired string) Plan {
 // firstMatchingSource returns the first source whose Probe equals
 // desired (via versionsEqual). Sources whose Probe errors with
 // ErrVersionUnknown are skipped.
-func firstMatchingSource(ctx context.Context, sources []source.Source, desired string) source.Source {
+func firstMatchingSource(
+	ctx context.Context,
+	sources []source.Source,
+	desired string,
+) source.Source {
 	for _, s := range sources {
 		v, err := s.Probe(ctx)
 		if err != nil {

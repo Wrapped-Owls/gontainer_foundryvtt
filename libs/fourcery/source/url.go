@@ -8,9 +8,11 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/archive"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/internal/copytree"
 )
 
 // urlSource downloads a presigned zip from a fixed URL.
@@ -22,12 +24,21 @@ type urlSource struct {
 	// Probe so the resolver can match URL → installed candidates
 	// without a network round-trip. May be empty.
 	labelVersion string
+	// cacheDir, when non-empty, is where the downloaded zip is saved
+	// after a successful Materialise so future runs can find it as a
+	// local zipSource without re-downloading.
+	cacheDir string
 }
 
-// NewURL constructs a urlSource. url and client must be non-nil; an
-// empty labelVersion is allowed (Probe will return ErrVersionUnknown).
-func NewURL(url string, client HTTPDoer, labelVersion string) Source {
-	return &urlSource{url: url, client: client, labelVersion: labelVersion}
+// NewURL constructs a urlSource. cacheDir should be set to
+// Config.SourcesDir so downloads are persisted for reuse.
+func NewURL(url string, client HTTPDoer, labelVersion, cacheDir string) Source {
+	return &urlSource{
+		url:          url,
+		client:       client,
+		labelVersion: labelVersion,
+		cacheDir:     cacheDir,
+	}
 }
 
 func (u *urlSource) Kind() Kind { return KindURL }
@@ -50,6 +61,14 @@ func (u *urlSource) Materialise(ctx context.Context, dst string) (Result, error)
 		return Result{}, fmt.Errorf("url: %w", err)
 	}
 	defer func() { _ = os.Remove(zipPath) }()
+
+	if u.cacheDir != "" && u.labelVersion != "" {
+		cached := filepath.Join(u.cacheDir, "foundryvtt_v"+u.labelVersion+".zip")
+		if cerr := copytree.CopyFile(zipPath, cached); cerr != nil {
+			return Result{}, fmt.Errorf("url: cache to sources: %w", cerr)
+		}
+	}
+
 	if _, err = archive.Extract(zipPath, dst); err != nil {
 		return Result{}, fmt.Errorf("url extract: %w", err)
 	}

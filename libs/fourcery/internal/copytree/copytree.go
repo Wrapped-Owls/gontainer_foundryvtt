@@ -58,6 +58,12 @@ func Copy(src, dst string) error {
 	})
 }
 
+// CopyFile copies the single file at src to dst, creating parent
+// directories as needed. The destination is created with fsperm.File
+// permissions (0o644). Use this for cross-device copies where
+// os.Rename would fail.
+func CopyFile(src, dst string) error { return copyFile(src, dst, fsperm.File) }
+
 func copyFile(src, dst string, mode fs.FileMode) error {
 	if mode == 0 {
 		mode = fsperm.File
