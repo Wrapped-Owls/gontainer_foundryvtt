@@ -68,6 +68,20 @@ type Source interface {
 - Materialise calling `os.MkdirTemp` itself — that is Forge's responsibility.
 - Network calls inside `Probe` (except `sessionSource` which knows its version from config).
 
+## `FOUNDRY_VERSION=latest`
+
+The special sentinel value `latest` changes the resolver priority so local artefacts are
+**preferred over remote sources**:
+
+1. Highest-version zip or folder in `FOUNDRY_SOURCES_DIR`.
+2. Newest installed candidate in `FOUNDRY_INSTALL_ROOT`.
+3. `FOUNDRY_RELEASE_URL` presigned URL — only if steps 1–2 found nothing.
+4. Session source — only if steps 1–3 found nothing.
+
+Use `latest` when you have a local zip or pre-installed folder and do not want an expired or
+slow presigned URL to take precedence. If no local artefact exists, the container still downloads
+as normal.
+
 ## See also
 
 - [`../patterns/auth-session.md`](../patterns/auth-session.md) — auth session and cookie reuse.
