@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -16,17 +15,10 @@ const (
 	DefaultTimeout = 5 * time.Second
 )
 
-const (
-	envSSLCert     = "FOUNDRY_SSL_CERT"
-	envSSLKey      = "FOUNDRY_SSL_KEY"
-	envRoutePrefix = "FOUNDRY_ROUTE_PREFIX"
-)
-
-// Probe describes the URL to hit. Build with FromEnv() in production.
+// Probe describes the URL to hit.
 type Probe struct {
-	URL     string
-	Timeout time.Duration
-	// Insecure mirrors curl --insecure: skip TLS cert verification.
+	URL      string
+	Timeout  time.Duration
 	Insecure bool
 }
 
@@ -35,30 +27,6 @@ func Default() Probe {
 		URL:      fmt.Sprintf("http://localhost:%d/api/status", DefaultPort),
 		Timeout:  DefaultTimeout,
 		Insecure: false,
-	}
-}
-
-// FromEnv mirrors check_health.sh's URL construction:
-//
-//   - protocol = "https" iff both FOUNDRY_SSL_CERT and FOUNDRY_SSL_KEY are set
-//   - path     = /<FOUNDRY_ROUTE_PREFIX>/api/status when prefix is set
-func FromEnv(env func(string) string) Probe {
-	if env == nil {
-		env = func(k string) string { return "" }
-	}
-	proto := "http"
-	if env(envSSLCert) != "" && env(envSSLKey) != "" {
-		proto = "https"
-	}
-	prefix := strings.Trim(env(envRoutePrefix), "/")
-	path := "/api/status"
-	if prefix != "" {
-		path = "/" + prefix + path
-	}
-	return Probe{
-		URL:      fmt.Sprintf("%s://localhost:%d%s", proto, DefaultPort, path),
-		Timeout:  DefaultTimeout,
-		Insecure: proto == "https",
 	}
 }
 
@@ -78,7 +46,7 @@ func Check(ctx context.Context, p Probe) error {
 	if p.Insecure {
 		tr.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
-		} //nolint:gosec // matches curl --insecure
+		} //nolint:gosec
 	}
 	client := &http.Client{Transport: tr, Timeout: p.Timeout}
 	resp, err := client.Do(req)

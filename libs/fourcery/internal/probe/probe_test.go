@@ -105,4 +105,3 @@ func TestZip_NoPackageJSON(t *testing.T) {
 		t.Errorf("want ErrNoVersion, got %v", err)
 	}
 }
-

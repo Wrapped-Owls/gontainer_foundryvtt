@@ -2,43 +2,12 @@ package backoff
 
 import (
 	"context"
-	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 )
-
-// New constructs a Manager with the supplied cache directory.
-func New(cacheDir string) *Manager {
-	return &Manager{CacheDir: cacheDir, Now: time.Now}
-}
-
-// NewFromEnv constructs a Manager from environment variables:
-//
-//   - CONTAINER_CACHE: default "/data/container_cache" when unset; an
-//     explicit empty string disables persistence.
-//   - KUBERNETES_SERVICE_HOST: any non-empty value enables bypass.
-func NewFromEnv() *Manager {
-	cfg := Default()
-	_ = LoadFromEnv(&cfg)
-	return NewFromConfig(cfg)
-}
-
-// Reset deletes the persisted state file. Safe to call when the file or
-// the cache directory does not exist.
-func (m *Manager) Reset() error {
-	if m.CacheDir == "" {
-		return nil
-	}
-	err := os.Remove(filepath.Join(m.CacheDir, stateFile))
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return err
-	}
-	return nil
-}
 
 // OnFailure records a failure and computes the next action.
 func (m *Manager) OnFailure(exitCode int) (Decision, error) {

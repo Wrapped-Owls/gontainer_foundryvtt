@@ -7,8 +7,6 @@
 //
 //   - DetectInstalled     — inspect a Foundry install root, report the
 //     version present (if any) by reading resources/app/package.json.
-//   - DecideInstall       — given a desired version + current state,
-//     return what action the controller must take.
 //   - WriteOptions        — render config.Options to <dataPath>/Config/
 //     options.json, idempotently (no write if bytes unchanged).
 //   - WriteAdminPassword  — render hashed admin.txt (or remove it when

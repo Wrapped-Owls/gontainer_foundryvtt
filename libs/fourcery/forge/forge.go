@@ -23,9 +23,6 @@ type Forge struct {
 	resolver    *Resolver
 }
 
-// Sources returns the configured source list (read-only view).
-func (f *Forge) Sources() []source.Source { return f.sources }
-
 // Resolve scans the install root, asks the resolver to pick a plan,
 // and emits EventResolved. desired may be empty.
 func (f *Forge) Resolve(ctx context.Context, desired string) (Plan, error) {

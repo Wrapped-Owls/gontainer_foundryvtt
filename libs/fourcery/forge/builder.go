@@ -31,15 +31,7 @@ func (b *Builder) WithSources(srcs ...source.Source) *Builder {
 	return b
 }
 
-// WithObserver sets the event observer. Nil installs the no-op
-// observer.
-func (b *Builder) WithObserver(o Observer) *Builder {
-	b.observer = o
-	return b
-}
-
-// WithLogger sets a logger. Convenience for WithObserver(SlogObserver{}).
-// If WithObserver was also called it takes precedence.
+// WithLogger sets a logger.
 func (b *Builder) WithLogger(l *slog.Logger) *Builder {
 	b.logger = l
 	return b

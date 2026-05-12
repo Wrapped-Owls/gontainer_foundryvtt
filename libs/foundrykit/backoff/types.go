@@ -4,7 +4,6 @@
 //   - persists backoff state in <CacheDir>/backoff_state.json
 //   - delay = min(10 * 2^(n-2), 960) seconds where n is the 1-based
 //     consecutive failure count, with n==1 yielding zero delay
-//   - immediate Reset() on successful startup (deletes the state file)
 //   - Kubernetes bypass: when KUBERNETES_SERVICE_HOST is non-empty, all
 //     OnFailure() calls return immediately so CrashLoopBackOff handles
 //     restart throttling

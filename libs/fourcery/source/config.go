@@ -1,8 +1,7 @@
 package source
 
 import (
-	"net/http"
-	"time"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/jsonhttp"
 )
 
 // HTTPDoer is the minimal HTTP interface the URL/session sources need.
@@ -31,16 +30,7 @@ type Options struct {
 	// Defaults to http.DefaultClient with a 30 minute download
 	// timeout via httpClientWithTimeout.
 	HTTPClient HTTPDoer
-	// Now is the clock used for nothing today; reserved for future
-	// timestamp-bearing sources.
-	Now func() time.Time
 }
 
 // Option is the functional-option signature used by NewRegistry.
 type Option func(*Options)
-
-// WithHTTPClient overrides the default HTTPDoer.
-func WithHTTPClient(c HTTPDoer) Option { return func(o *Options) { o.HTTPClient = c } }
-
-// WithNow overrides the clock.
-func WithNow(fn func() time.Time) Option { return func(o *Options) { o.Now = fn } }

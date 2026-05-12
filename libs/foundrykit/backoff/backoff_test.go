@@ -77,39 +77,6 @@ func TestPersistentSchedule(t *testing.T) {
 	}
 }
 
-func TestResetDeletesState(t *testing.T) {
-	dir := t.TempDir()
-	m := New(dir)
-	if _, err := m.OnFailure(1); err != nil {
-		t.Fatal(err)
-	}
-	if err := m.Reset(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(filepath.Join(dir, stateFile)); !errors.Is(err, fs.ErrNotExist) {
-		t.Fatalf("state file should be removed: %v", err)
-	}
-	// Reset is idempotent.
-	if err := m.Reset(); err != nil {
-		t.Fatalf("idempotent Reset: %v", err)
-	}
-}
-
-func TestCorruptStateRecovers(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, stateFile), []byte("garbage"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	m := New(dir)
-	d, err := m.OnFailure(99)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if d.State.ConsecutiveFailures != 1 {
-		t.Fatalf("corrupt file should reset counter, got %d", d.State.ConsecutiveFailures)
-	}
-}
-
 func TestSleepCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

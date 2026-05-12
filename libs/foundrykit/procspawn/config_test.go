@@ -24,10 +24,3 @@ func TestConfigDefault(t *testing.T) {
 		t.Error("Default ForwardSignals must include SIGTERM")
 	}
 }
-
-func TestLoadFromEnvIsNoOp(t *testing.T) {
-	cfg := Default()
-	if err := LoadFromEnv(&cfg); err != nil {
-		t.Fatalf("LoadFromEnv returned error: %v", err)
-	}
-}

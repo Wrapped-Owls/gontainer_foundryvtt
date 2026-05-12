@@ -37,10 +37,6 @@ type Applier struct {
 	// the Entry the caller should persist. Nil disables the callback.
 	OnApplied func(ledger.Entry)
 
-	// Now is the clock used to stamp ledger entries; defaults to
-	// time.Now().UTC().
-	Now func() time.Time
-
 	runners map[manifest.ActionType]action.Runner
 }
 
@@ -83,9 +79,6 @@ func (a *Applier) Apply(
 }
 
 func (a *Applier) now() time.Time {
-	if a.Now != nil {
-		return a.Now()
-	}
 	return time.Now().UTC()
 }
 
