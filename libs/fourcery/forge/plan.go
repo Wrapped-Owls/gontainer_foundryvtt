@@ -18,10 +18,10 @@ const (
 // Plan is the resolver's verdict. Fields populated depend on Action.
 type Plan struct {
 	Action          Action
-	Candidate       *Candidate     // ActionUseExisting
-	Source          source.Source  // ActionInstallFromSource
-	TargetRoot      string         // ActionInstallFromSource
-	ResolvedVersion string         // best-effort known version
+	Candidate       *Candidate    // ActionUseExisting
+	Source          source.Source // ActionInstallFromSource
+	TargetRoot      string        // ActionInstallFromSource
+	ResolvedVersion string        // best-effort known version
 }
 
 // Install is fourcery's name for "the install we settled on": its

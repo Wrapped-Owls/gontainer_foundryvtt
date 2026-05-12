@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/auth"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/jsonhttp"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/auth"
 )
 
 // Fetch returns a presigned URL for the requested version.

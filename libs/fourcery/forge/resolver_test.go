@@ -15,14 +15,15 @@ type fakeSource struct {
 	probeEr error
 }
 
-func (f *fakeSource) Kind() source.Kind   { return f.kind }
-func (f *fakeSource) Describe() string    { return "fake-" + string(f.kind) }
+func (f *fakeSource) Kind() source.Kind { return f.kind }
+func (f *fakeSource) Describe() string  { return "fake-" + string(f.kind) }
 func (f *fakeSource) Probe(context.Context) (string, error) {
 	if f.probeEr != nil {
 		return "", f.probeEr
 	}
 	return f.version, nil
 }
+
 func (f *fakeSource) Materialise(context.Context, string) (source.Result, error) {
 	return source.Result{Kind: f.kind, Version: f.version}, nil
 }
@@ -136,7 +137,7 @@ func TestResolve_UndesiredFallsBackToLatestInstalled(t *testing.T) {
 func TestResolve_DesiredMatchesURLLabel(t *testing.T) {
 	r := NewResolver("/foundry")
 	srcs := []source.Source{
-		source.NewURL("https://example.invalid/x.zip", nil, "14.361.2"),
+		source.NewURL("https://example.invalid/x.zip", nil, "14.361.2", ""),
 	}
 	plan, err := r.Resolve(context.Background(), "14.361.2", nil, srcs)
 	if err != nil {

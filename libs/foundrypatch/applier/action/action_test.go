@@ -47,7 +47,12 @@ func TestDownloadRunner_WritesFile(t *testing.T) {
 	defer srv.Close()
 
 	dest := filepath.Join(t.TempDir(), "sub", "file.txt")
-	act := manifest.Action{Type: manifest.ActionDownload, URL: srv.URL, SHA256: bodySum(body), Dest: "sub/file.txt"}
+	act := manifest.Action{
+		Type:   manifest.ActionDownload,
+		URL:    srv.URL,
+		SHA256: bodySum(body),
+		Dest:   "sub/file.txt",
+	}
 	if err := Download(http.DefaultClient).Run(context.Background(), act, dest); err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +72,12 @@ func TestDownloadRunner_HashMismatch(t *testing.T) {
 	defer srv.Close()
 
 	dest := filepath.Join(t.TempDir(), "out")
-	act := manifest.Action{Type: manifest.ActionDownload, URL: srv.URL, SHA256: "deadbeef", Dest: "out"}
+	act := manifest.Action{
+		Type:   manifest.ActionDownload,
+		URL:    srv.URL,
+		SHA256: "deadbeef",
+		Dest:   "out",
+	}
 	if err := Download(http.DefaultClient).Run(context.Background(), act, dest); err == nil {
 		t.Fatal("expected hash mismatch error")
 	}

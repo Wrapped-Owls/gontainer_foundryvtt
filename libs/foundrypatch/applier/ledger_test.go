@@ -28,7 +28,12 @@ func TestApplier_LedgerSkipsAppliedPatch(t *testing.T) {
 		ID:       "p1",
 		Versions: ">=1",
 		Actions: []manifest.Action{
-			{Type: manifest.ActionDownload, URL: srv.URL, SHA256: hex.EncodeToString(sum[:]), Dest: "x.bin"},
+			{
+				Type:   manifest.ActionDownload,
+				URL:    srv.URL,
+				SHA256: hex.EncodeToString(sum[:]),
+				Dest:   "x.bin",
+			},
 		},
 	}}
 	l := &ledger.Ledger{}
@@ -70,7 +75,9 @@ func TestApplier_LedgerReappliesOnContentChange(t *testing.T) {
 		return manifest.Patch{
 			ID:       "p1",
 			Versions: ">=1",
-			Actions:  []manifest.Action{{Type: manifest.ActionFileReplace, Dest: "f", Content: content}},
+			Actions: []manifest.Action{
+				{Type: manifest.ActionFileReplace, Dest: "f", Content: content},
+			},
 		}
 	}
 

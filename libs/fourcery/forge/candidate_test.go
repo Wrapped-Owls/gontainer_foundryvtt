@@ -40,7 +40,6 @@ func TestNormalizeVersionDir(t *testing.T) {
 	}
 }
 
-
 func TestMatchCandidate(t *testing.T) {
 	candidates := []Candidate{
 		newCandidate("/a", "14.361.0"),

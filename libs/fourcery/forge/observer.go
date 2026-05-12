@@ -36,7 +36,7 @@ func (EventInstalled) EventKind() string { return "installed" }
 
 // EventSkipped fires when Acquire short-circuits (reusing a candidate).
 type EventSkipped struct {
-	Reason string
+	Reason  string
 	Install Install
 }
 
