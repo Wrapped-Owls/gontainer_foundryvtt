@@ -1,9 +1,9 @@
 { pkgs, src }:
 
 let
-  foundryctl = import ./modules/foundryctl.nix { inherit pkgs; repoSrc = src; };
-  bun = import ./bun.nix { inherit pkgs; };
-  image = import ./image.nix { inherit pkgs foundryctl bun; };
+  foundryctl       = import ./modules/foundryctl.nix { inherit pkgs; repoSrc = src; };
+  bunImage         = import ./bun-image.nix { inherit pkgs; };
+  image            = import ./image.nix { inherit pkgs foundryctl bunImage; };
   updateVendorHash = import ./apps/update-vendor-hash.nix { inherit pkgs; };
 in {
   devShells.default = pkgs.mkShell {
@@ -19,12 +19,12 @@ in {
   };
 
   packages = {
-    inherit foundryctl bun image;
+    inherit foundryctl image;
     default = foundryctl;
   };
 
   apps = {
-    foundryctl = { type = "app"; program = "${foundryctl}/bin/foundryctl"; };
+    foundryctl         = { type = "app"; program = "${foundryctl}/bin/foundryctl"; };
     update-vendor-hash = { type = "app"; program = "${updateVendorHash}/bin/update-vendor-hash"; };
   };
 
