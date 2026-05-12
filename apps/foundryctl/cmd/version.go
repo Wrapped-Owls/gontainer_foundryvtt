@@ -19,10 +19,8 @@ func Version() {
 	if err != nil {
 		cfg = appconfig.Default()
 	}
-	if installed, derr := lifecycle.DetectInstalled(
-		cfg.Paths.InstallRoot,
-	); derr == nil &&
-		installed.Present {
+	installed, derr := lifecycle.DetectInstalled(cfg.Paths.InstallRoot)
+	if derr == nil && installed.Present {
 		fmt.Printf("foundry installed: %s\n", installed.Version)
 	}
 }
