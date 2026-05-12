@@ -6,9 +6,7 @@ import (
 
 // HTTPDoer is the minimal HTTP interface the URL/session sources need.
 // It matches *http.Client and any test fake.
-type HTTPDoer interface {
-	Do(*http.Request) (*http.Response, error)
-}
+type HTTPDoer = jsonhttp.HTTPDoer
 
 // Config is the inputs from app config that a Registry turns into a
 // list of Source values. SourcesDir, ReleaseURL, Version, and the

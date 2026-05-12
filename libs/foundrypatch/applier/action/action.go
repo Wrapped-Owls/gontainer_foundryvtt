@@ -3,15 +3,13 @@ package action
 
 import (
 	"context"
-	"net/http"
 
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/jsonhttp"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/manifest"
 )
 
 // HTTPDoer abstracts HTTP client calls for testability.
-type HTTPDoer interface {
-	Do(req *http.Request) (*http.Response, error)
-}
+type HTTPDoer = jsonhttp.HTTPDoer
 
 // Runner is the strategy interface for a single action type.
 type Runner interface {
