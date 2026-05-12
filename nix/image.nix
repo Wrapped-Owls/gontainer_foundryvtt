@@ -1,4 +1,4 @@
-{ pkgs, foundryctl, bun }:
+{ pkgs, foundryctl, bunImage }:
 
 let
   rootfs = pkgs.buildEnv {
@@ -6,15 +6,10 @@ let
     paths = with pkgs; [
       cacert
       tzdata
-      bun
       foundryctl
-      busybox
     ];
   };
 
-  # Separate derivations so buildLayeredImage never needs to write into
-  # existing store-owned directories (which are read-only and cause
-  # permission errors with both fakeRootCommands and extraCommands).
   patchManifest = pkgs.runCommand "foundryvtt-patch-manifest" { } ''
     mkdir -p $out/etc/foundry/patches
     cp ${../patches/manifest.yaml} $out/etc/foundry/patches/manifest.yaml
@@ -25,16 +20,17 @@ let
   '';
 in
 pkgs.dockerTools.buildLayeredImage {
-  name = "foundryvtt-docker";
-  tag  = "latest";
-  contents = [ rootfs patchManifest runtimeDirs ];
+  name      = "foundryvtt-docker";
+  tag       = "latest";
+  fromImage = bunImage;
+  contents  = [ rootfs patchManifest runtimeDirs ];
 
   config = {
     Entrypoint = [ "${foundryctl}/bin/foundryctl" ];
     Cmd        = [ "run" ];
     WorkingDir = "/";
     Env = [
-      "PATH=/bin:/usr/bin"
+      "PATH=/bin:/usr/bin:/usr/local/bin"
       "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
       "FOUNDRY_DATA_PATH=/data"
       "FOUNDRY_INSTALL_ROOT=/foundry"
@@ -45,10 +41,10 @@ pkgs.dockerTools.buildLayeredImage {
     Volumes = { "/data" = {}; };
     Healthcheck = {
       Test = [ "CMD" "${foundryctl}/bin/foundryctl" "healthcheck" ];
-      Interval = 30000000000;   # 30s in ns
-      Timeout  =  5000000000;   #  5s
+      Interval = 30000000000;
+      Timeout  =  5000000000;
       Retries  = 3;
-      StartPeriod = 180000000000; # 3m
+      StartPeriod = 180000000000;
     };
   };
 }
