@@ -1,12 +1,12 @@
 package probe
 
 import (
-	"archive/zip"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/internal/testzip"
 )
 
 func TestFilename(t *testing.T) {
@@ -70,7 +70,7 @@ func TestFolder(t *testing.T) {
 }
 
 func TestZip_LinuxLayout(t *testing.T) {
-	zp := makeZip(t, map[string]string{
+	zp := testzip.MakeZip(t, map[string]string{
 		"resources/app/main.mjs":     "// main",
 		"resources/app/package.json": `{"version":"14.361.2"}`,
 	})
@@ -84,7 +84,7 @@ func TestZip_LinuxLayout(t *testing.T) {
 }
 
 func TestZip_NodeLayout(t *testing.T) {
-	zp := makeZip(t, map[string]string{
+	zp := testzip.MakeZip(t, map[string]string{
 		"main.mjs":     "// main",
 		"package.json": `{"version":"14.361.3"}`,
 	})
@@ -98,7 +98,7 @@ func TestZip_NodeLayout(t *testing.T) {
 }
 
 func TestZip_NoPackageJSON(t *testing.T) {
-	zp := makeZip(t, map[string]string{
+	zp := testzip.MakeZip(t, map[string]string{
 		"resources/app/main.mjs": "// main",
 	})
 	if _, err := Zip(zp); !errors.Is(err, ErrNoVersion) {
@@ -106,27 +106,3 @@ func TestZip_NoPackageJSON(t *testing.T) {
 	}
 }
 
-func makeZip(t *testing.T, entries map[string]string) string {
-	t.Helper()
-	dir := t.TempDir()
-	zp := filepath.Join(dir, "release.zip")
-	f, err := os.Create(zp)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = f.Close() }()
-	zw := zip.NewWriter(f)
-	for name, body := range entries {
-		w, werr := zw.Create(name)
-		if werr != nil {
-			t.Fatal(werr)
-		}
-		if _, werr = io.WriteString(w, body); werr != nil {
-			t.Fatal(werr)
-		}
-	}
-	if err = zw.Close(); err != nil {
-		t.Fatal(err)
-	}
-	return zp
-}
