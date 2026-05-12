@@ -1,0 +1,36 @@
+{
+    admin        off
+    http_port    80
+    https_port   443
+}
+
+{$SITE_ADDRESS} {
+    # Automatically manage SSL certificates via Let's Encrypt
+    # tls {
+        # You can specify email if needed for Let's Encrypt notifications
+        # email your-email@example.com
+    # }
+
+    # Enable access logs to stdout
+    log {
+        output stdout
+        format json
+    }
+
+    redir /socket.io /socket.io/
+    # Proxy for WebSocket connections
+    @websockets {
+                header Connection *Upgrade*
+                header Upgrade    websocket
+                path   /socket.io/*
+    }
+    reverse_proxy @websockets foundryvtt:30000
+
+    # Proxy all traffic to the Foundry VTT instance
+    reverse_proxy * foundryvtt:30000
+
+    # Uncomment the following lines if you want to add basic authentication
+    # basicauth / "Restricted Access" {
+    #     htpasswd /etc/nginx/.htpasswd
+    # }
+}

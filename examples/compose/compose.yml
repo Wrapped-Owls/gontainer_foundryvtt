@@ -1,6 +1,6 @@
 services:
   foundry:
-    image: foundryvtt-docker:dev
+    image: ghcr.io/wrapped-owls/gontainer_foundryvtt:latest
     restart: unless-stopped
     ports:
       - "30000:30000/tcp"
