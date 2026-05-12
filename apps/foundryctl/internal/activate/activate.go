@@ -15,6 +15,7 @@ type State = step.State
 func Prepare(ctx context.Context, logger *slog.Logger) (State, error) {
 	return step.Run(ctx, logger,
 		step.AppConfig(),
+		step.EnsureDirs(),
 		step.Secrets(),
 		step.Install(),
 		step.Options(),
