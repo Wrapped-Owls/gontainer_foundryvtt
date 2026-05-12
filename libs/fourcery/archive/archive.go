@@ -4,12 +4,12 @@ import (
 	"archive/zip"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/ziputil"
 )
 
 type Kind int
@@ -36,24 +36,6 @@ var (
 	ErrNotZip      = errors.New("archive: not a zip file")
 	ErrUnsafePath  = errors.New("archive: zip entry escapes destination")
 )
-
-var magicZip = []byte{'P', 'K', 0x03, 0x04}
-
-func IsZip(path string) (bool, error) {
-	const zipMagicLen = 4
-
-	f, err := os.Open(path)
-	if err != nil {
-		return false, err
-	}
-	defer func() { _ = f.Close() }()
-	var head [zipMagicLen]byte
-	n, err := io.ReadFull(f, head[:])
-	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
-		return false, err
-	}
-	return n == zipMagicLen && string(head[:]) == string(magicZip), nil
-}
 
 func Detect(path string) (Kind, error) {
 	zr, err := zip.OpenReader(path)
@@ -123,30 +105,9 @@ func Extract(zipPath, baseDir string) (Kind, error) {
 		if err = os.MkdirAll(filepath.Dir(dest), fsperm.Dir); err != nil {
 			return kind, err
 		}
-		if err = writeZipEntry(f, dest); err != nil {
+		if err = ziputil.WriteEntry(f, dest); err != nil {
 			return kind, err
 		}
 	}
 	return kind, nil
-}
-
-func writeZipEntry(f *zip.File, dest string) error {
-	rc, err := f.Open()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = rc.Close() }()
-	mode := f.Mode().Perm()
-	if mode == 0 {
-		mode = fsperm.File
-	}
-	out, err := os.OpenFile(dest, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
-	if err != nil {
-		return err
-	}
-	if _, err = io.Copy(out, rc); err != nil { //nolint:gosec // size bounded by zip metadata
-		_ = out.Close()
-		return err
-	}
-	return out.Close()
 }
