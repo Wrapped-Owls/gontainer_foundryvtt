@@ -2,6 +2,7 @@ package forge
 
 import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/source"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 type Action int
@@ -16,10 +17,10 @@ type Plan struct {
 	Candidate       *Candidate
 	Source          source.Source
 	TargetRoot      string
-	ResolvedVersion string
+	ResolvedVersion version.Version
 }
 
 type Install struct {
 	Root    string
-	Version string
+	Version version.Version
 }

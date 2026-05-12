@@ -9,24 +9,18 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
-
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/internal/probe"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 type Candidate struct {
-	Path    string
-	Version string
-	Parsed  *semver.Version
+	Path string
+
+	Version version.Version
 }
 
-func newCandidate(path, version string) Candidate {
-	c := Candidate{Path: path, Version: version}
-	if v, err := semver.NewVersion(version); err == nil {
-		c.Parsed = v
-		c.Version = v.String()
-	}
-	return c
+func newCandidate(path, ver string) Candidate {
+	return Candidate{Path: path, Version: version.Parse(ver)}
 }
 
 func scanCandidates(installRoot string) ([]Candidate, error) {
@@ -60,16 +54,7 @@ func scanCandidates(installRoot string) ([]Candidate, error) {
 		}
 	}
 	slices.SortStableFunc(out, func(a, b Candidate) int {
-		if a.Parsed == nil && b.Parsed == nil {
-			return 0
-		}
-		if a.Parsed == nil {
-			return 1
-		}
-		if b.Parsed == nil {
-			return -1
-		}
-		return b.Parsed.Compare(a.Parsed)
+		return b.Version.Compare(a.Version) // newest first; non-semver sorts last
 	})
 	return out, nil
 }
@@ -82,67 +67,18 @@ func readCandidate(path string) (Candidate, bool, error) {
 		}
 		return Candidate{}, false, fmt.Errorf("forge: stat %s: %w", mainPath, err)
 	}
-	version, err := probe.Folder(path)
+	ver, err := probe.Folder(path)
 	if err != nil && !errors.Is(err, probe.ErrNoVersion) {
 		return Candidate{}, false, fmt.Errorf("forge: probe %s: %w", path, err)
 	}
-	return newCandidate(path, version), true, nil
+	return newCandidate(path, ver), true, nil
 }
 
-func matchCandidate(candidates []Candidate, desired string) *Candidate {
-	parsed, err := semver.NewVersion(desired)
-	if err != nil {
-		for i := range candidates {
-			if candidates[i].Version == strings.TrimSpace(desired) {
-				return &candidates[i]
-			}
-		}
-		return nil
-	}
-	requirePatch := versionHasPatch(desired)
+func matchCandidate(candidates []Candidate, desired version.Version) *Candidate {
 	for i := range candidates {
-		c := &candidates[i]
-		if c.Parsed == nil {
-			if c.Version == desired {
-				return c
-			}
-			continue
-		}
-		if requirePatch {
-			if c.Parsed.Equal(parsed) {
-				return c
-			}
-			continue
-		}
-		if c.Parsed.Major() == parsed.Major() && c.Parsed.Minor() == parsed.Minor() {
-			return c
+		if candidates[i].Version.Matches(desired) {
+			return &candidates[i]
 		}
 	}
 	return nil
-}
-
-func versionsEqual(actual, desired string) bool {
-	if actual == "" || desired == "" {
-		return actual == desired
-	}
-	a, errA := semver.NewVersion(actual)
-	d, errD := semver.NewVersion(desired)
-	if errA != nil || errD != nil {
-		return strings.TrimSpace(actual) == strings.TrimSpace(desired)
-	}
-	if versionHasPatch(desired) {
-		return a.Equal(d)
-	}
-	return a.Major() == d.Major() && a.Minor() == d.Minor()
-}
-
-func versionHasPatch(v string) bool {
-	return strings.Count(strings.TrimSpace(v), ".") >= 2
-}
-
-func normalizeVersionDir(version string) string {
-	if parsed, err := semver.NewVersion(version); err == nil {
-		return "foundryvtt_v" + parsed.String()
-	}
-	return "foundryvtt_v" + strings.TrimSpace(version)
 }
