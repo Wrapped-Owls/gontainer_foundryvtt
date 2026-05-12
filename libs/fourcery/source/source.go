@@ -3,6 +3,8 @@ package source
 import (
 	"context"
 	"errors"
+
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 type Kind string
@@ -17,12 +19,12 @@ const (
 type Source interface {
 	Kind() Kind
 	Describe() string
-	Probe(ctx context.Context) (string, error)
+	Probe(ctx context.Context) (version.Version, error)
 	Materialise(ctx context.Context, dst string) (Result, error)
 }
 
 type Result struct {
-	Version string
+	Version version.Version
 	Kind    Kind
 }
 

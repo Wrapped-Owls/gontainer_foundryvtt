@@ -77,7 +77,7 @@ func TestZipSource_Probe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v != "14.361.4" {
+	if v.String() != "14.361.4" {
 		t.Errorf("want 14.361.4, got %q", v)
 	}
 }
@@ -100,7 +100,7 @@ func TestFolderSource_Probe_FallbackToPackageJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v != "14.361.7" {
+	if v.String() != "14.361.7" {
 		t.Errorf("want 14.361.7, got %q", v)
 	}
 }
@@ -119,7 +119,7 @@ func TestURLSource_ProbeWithLabel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v != "14.361.0" {
+	if v.String() != "14.361.0" {
 		t.Errorf("want 14.361.0, got %q", v)
 	}
 }

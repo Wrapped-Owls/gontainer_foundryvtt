@@ -8,11 +8,13 @@ import (
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/archive"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/internal/probe"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 type zipSource struct {
-	path          string
-	cachedVersion string
+	path string
+
+	cachedVersion version.Version
 }
 
 func NewZip(path string) Source { return &zipSource{path: path} }
@@ -21,23 +23,23 @@ func (z *zipSource) Kind() Kind { return KindZip }
 
 func (z *zipSource) Describe() string { return "zip " + filepath.Base(z.path) }
 
-func (z *zipSource) Probe(_ context.Context) (string, error) {
-	if z.cachedVersion != "" {
+func (z *zipSource) Probe(_ context.Context) (version.Version, error) {
+	if !z.cachedVersion.IsZero() {
 		return z.cachedVersion, nil
 	}
-	if v, err := probe.Filename(filepath.Base(z.path)); err == nil {
-		z.cachedVersion = v
-		return v, nil
+	if raw, err := probe.Filename(filepath.Base(z.path)); err == nil {
+		z.cachedVersion = version.Parse(raw)
+		return z.cachedVersion, nil
 	}
-	v, err := probe.Zip(z.path)
+	raw, err := probe.Zip(z.path)
 	if err != nil {
 		if errors.Is(err, probe.ErrNoVersion) {
-			return "", ErrVersionUnknown
+			return version.Version{}, ErrVersionUnknown
 		}
-		return "", fmt.Errorf("zip probe: %w", err)
+		return version.Version{}, fmt.Errorf("zip probe: %w", err)
 	}
-	z.cachedVersion = v
-	return v, nil
+	z.cachedVersion = version.Parse(raw)
+	return z.cachedVersion, nil
 }
 
 func (z *zipSource) Materialise(_ context.Context, dst string) (Result, error) {

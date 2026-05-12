@@ -11,12 +11,14 @@ import (
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/archive"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/internal/copytree"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
 type urlSource struct {
-	url          string
-	client       HTTPDoer
-	labelVersion string
+	url    string
+	client HTTPDoer
+
+	labelVersion version.Version
 	cacheDir     string
 }
 
@@ -24,7 +26,7 @@ func NewURL(url string, client HTTPDoer, labelVersion, cacheDir string) Source {
 	return &urlSource{
 		url:          url,
 		client:       client,
-		labelVersion: labelVersion,
+		labelVersion: version.Parse(labelVersion),
 		cacheDir:     cacheDir,
 	}
 }
@@ -33,9 +35,9 @@ func (u *urlSource) Kind() Kind { return KindURL }
 
 func (u *urlSource) Describe() string { return "presigned URL" }
 
-func (u *urlSource) Probe(_ context.Context) (string, error) {
-	if u.labelVersion == "" {
-		return "", ErrVersionUnknown
+func (u *urlSource) Probe(_ context.Context) (version.Version, error) {
+	if u.labelVersion.IsZero() {
+		return version.Version{}, ErrVersionUnknown
 	}
 	return u.labelVersion, nil
 }
@@ -50,8 +52,8 @@ func (u *urlSource) Materialise(ctx context.Context, dst string) (Result, error)
 	}
 	defer func() { _ = os.Remove(zipPath) }()
 
-	if u.cacheDir != "" && u.labelVersion != "" {
-		cached := filepath.Join(u.cacheDir, "foundryvtt_v"+u.labelVersion+".zip")
+	if u.cacheDir != "" && !u.labelVersion.IsZero() {
+		cached := filepath.Join(u.cacheDir, "foundryvtt_v"+u.labelVersion.String()+".zip")
 		if cerr := copytree.CopyFile(zipPath, cached); cerr != nil {
 			return Result{}, fmt.Errorf("url: cache to sources: %w", cerr)
 		}
