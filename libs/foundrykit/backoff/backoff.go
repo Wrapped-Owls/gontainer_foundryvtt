@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-)
 
-const dirPerm fs.FileMode = 0o755
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
+)
 
 // New constructs a Manager with the supplied cache directory.
 func New(cacheDir string) *Manager {
@@ -47,7 +47,7 @@ func (m *Manager) OnFailure(exitCode int) (Decision, error) {
 	}
 
 	if m.CacheDir != "" {
-		if err := os.MkdirAll(m.CacheDir, dirPerm); err != nil {
+		if err := os.MkdirAll(m.CacheDir, fsperm.Dir); err != nil {
 			// Fall through to no-cache mode on permission failures.
 			return Decision{Mode: ModeNoCache, ExitCode: exitCode}, nil
 		}

@@ -8,11 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/internal/probe"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/source"
 )
-
-const dirPerm fs.FileMode = 0o755
 
 // Forge is the orchestrator: scan candidates, resolve a Plan, then
 // materialise the chosen source into a versioned subdirectory.
@@ -64,7 +63,7 @@ func (f *Forge) materialise(ctx context.Context, p Plan) (Install, error) {
 	if p.Source == nil {
 		return Install{}, errors.New("forge: install-from-source plan has no source")
 	}
-	if err := os.MkdirAll(f.installRoot, dirPerm); err != nil {
+	if err := os.MkdirAll(f.installRoot, fsperm.Dir); err != nil {
 		return Install{}, fmt.Errorf("forge: mkdir install root: %w", err)
 	}
 	staging, err := os.MkdirTemp(f.installRoot, ".fourcery-staging-*")
@@ -114,7 +113,7 @@ func swapInto(staging, target string) error {
 	if err := os.RemoveAll(target); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("forge: remove existing %s: %w", target, err)
 	}
-	if err := os.MkdirAll(filepath.Dir(target), dirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(target), fsperm.Dir); err != nil {
 		return fmt.Errorf("forge: mkdir parent of %s: %w", target, err)
 	}
 	if err := os.Rename(staging, target); err != nil {

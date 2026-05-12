@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime/config"
 )
 
@@ -31,13 +32,13 @@ func WriteAdminPassword(dataPath, plaintext, salt string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if err = os.MkdirAll(filepath.Dir(dest), dirPerm); err != nil {
+	if err = os.MkdirAll(filepath.Dir(dest), fsperm.Dir); err != nil {
 		return false, err
 	}
 	if existing, err := os.ReadFile(dest); err == nil && string(existing) == hashed {
 		return false, nil
 	}
-	if err = os.WriteFile(dest, []byte(hashed), secretPerm); err != nil {
+	if err = os.WriteFile(dest, []byte(hashed), fsperm.Secret); err != nil {
 		return false, err
 	}
 	return true, nil

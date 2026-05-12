@@ -25,12 +25,6 @@ import (
 	"strings"
 )
 
-const (
-	dirPerm    fs.FileMode = 0o755
-	filePerm   fs.FileMode = 0o644
-	secretPerm fs.FileMode = 0o600
-)
-
 // InstalledInfo describes whatever Foundry release is currently present
 // at the install root. Both fields zero when nothing is installed.
 type InstalledInfo struct {

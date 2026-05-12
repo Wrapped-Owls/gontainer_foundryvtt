@@ -2,11 +2,10 @@ package backoff
 
 import (
 	"encoding/json"
-	"io/fs"
 	"os"
-)
 
-const filePerm fs.FileMode = 0o644
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
+)
 
 func readState(path string) (State, error) {
 	b, err := os.ReadFile(path)
@@ -30,7 +29,7 @@ func writeStateAtomic(path string, s State) error {
 		return err
 	}
 	b = append(b, '\n')
-	if err := os.WriteFile(tmp, b, filePerm); err != nil {
+	if err := os.WriteFile(tmp, b, fsperm.File); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)

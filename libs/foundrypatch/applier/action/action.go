@@ -3,15 +3,9 @@ package action
 
 import (
 	"context"
-	"io/fs"
 	"net/http"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/manifest"
-)
-
-const (
-	DirPerm  fs.FileMode = 0o755
-	FilePerm fs.FileMode = 0o644
 )
 
 // HTTPDoer abstracts HTTP client calls for testability.

@@ -8,15 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
-)
 
-const (
-	dirPerm  fs.FileMode = 0o755
-	filePerm fs.FileMode = 0o644
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 )
 
 // Kind classifies a Foundry release archive.
@@ -144,12 +140,12 @@ func Extract(zipPath, baseDir string) (Kind, error) {
 			return kind, fmt.Errorf("%w: %s", ErrUnsafePath, f.Name)
 		}
 		if f.FileInfo().IsDir() {
-			if err = os.MkdirAll(dest, dirPerm); err != nil {
+			if err = os.MkdirAll(dest, fsperm.Dir); err != nil {
 				return kind, err
 			}
 			continue
 		}
-		if err = os.MkdirAll(filepath.Dir(dest), dirPerm); err != nil {
+		if err = os.MkdirAll(filepath.Dir(dest), fsperm.Dir); err != nil {
 			return kind, err
 		}
 		if err = writeZipEntry(f, dest); err != nil {
@@ -167,7 +163,7 @@ func writeZipEntry(f *zip.File, dest string) error {
 	defer func() { _ = rc.Close() }()
 	mode := f.Mode().Perm()
 	if mode == 0 {
-		mode = filePerm
+		mode = fsperm.File
 	}
 	out, err := os.OpenFile(dest, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
 	if err != nil {

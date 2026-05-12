@@ -8,11 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-)
 
-const (
-	dirPerm  fs.FileMode = 0o755
-	filePerm fs.FileMode = 0o644
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 )
 
 // ErrUnsafeLink is returned when a symlink target escapes the source
@@ -50,7 +47,7 @@ func Copy(src, dst string) error {
 		}
 		switch {
 		case d.IsDir():
-			return os.MkdirAll(target, dirPerm)
+			return os.MkdirAll(target, fsperm.Dir)
 		case info.Mode()&fs.ModeSymlink != 0:
 			return copySymlink(path, target, cleanSrc)
 		case info.Mode().IsRegular():
@@ -63,9 +60,9 @@ func Copy(src, dst string) error {
 
 func copyFile(src, dst string, mode fs.FileMode) error {
 	if mode == 0 {
-		mode = filePerm
+		mode = fsperm.File
 	}
-	if err := os.MkdirAll(filepath.Dir(dst), dirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), fsperm.Dir); err != nil {
 		return err
 	}
 	in, err := os.Open(src)
@@ -107,7 +104,7 @@ func copySymlink(src, dst, srcRoot string) error {
 	) && resolvedAbs != srcRoot {
 		return fmt.Errorf("%w: %s -> %s", ErrUnsafeLink, src, tgt)
 	}
-	if err := os.MkdirAll(filepath.Dir(dst), dirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), fsperm.Dir); err != nil {
 		return err
 	}
 	return os.Symlink(tgt, dst)

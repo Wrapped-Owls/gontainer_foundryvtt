@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/manifest"
 )
 
@@ -29,10 +30,10 @@ func (r downloadRunner) Run(ctx context.Context, act manifest.Action, dest strin
 	if err != nil {
 		return err
 	}
-	if err = os.MkdirAll(filepath.Dir(dest), DirPerm); err != nil {
+	if err = os.MkdirAll(filepath.Dir(dest), fsperm.Dir); err != nil {
 		return err
 	}
-	return os.WriteFile(dest, body, FilePerm)
+	return os.WriteFile(dest, body, fsperm.File)
 }
 
 func fetch(ctx context.Context, client HTTPDoer, url, wantHex string) ([]byte, error) {

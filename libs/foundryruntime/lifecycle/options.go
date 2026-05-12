@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime/config"
 )
 
@@ -20,7 +21,7 @@ func ConfigDir(dataPath string) string { return filepath.Join(dataPath, "Config"
 // Returns true iff the file was (re)written.
 func WriteOptions(dataPath string, c config.Config) (bool, error) {
 	dir := ConfigDir(dataPath)
-	if err := os.MkdirAll(dir, dirPerm); err != nil {
+	if err := os.MkdirAll(dir, fsperm.Dir); err != nil {
 		return false, fmt.Errorf("lifecycle: mkdir %s: %w", dir, err)
 	}
 	dest := filepath.Join(dir, "options.json")
@@ -31,7 +32,7 @@ func WriteOptions(dataPath string, c config.Config) (bool, error) {
 	if existing, err := os.ReadFile(dest); err == nil && bytes.Equal(existing, buf.Bytes()) {
 		return false, nil
 	}
-	if err := os.WriteFile(dest, buf.Bytes(), filePerm); err != nil {
+	if err := os.WriteFile(dest, buf.Bytes(), fsperm.File); err != nil {
 		return false, fmt.Errorf("lifecycle: write %s: %w", dest, err)
 	}
 	return true, nil

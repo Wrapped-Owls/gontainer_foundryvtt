@@ -2,16 +2,15 @@ package auth
 
 import (
 	"encoding/json"
-	"io/fs"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
 	"time"
 
 	"golang.org/x/net/publicsuffix"
-)
 
-const secretPerm fs.FileMode = 0o600
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
+)
 
 // Session is the result of a successful Login or LoadSession call. It
 // carries the authenticated cookie jar and the canonical (lowercase)
@@ -51,7 +50,7 @@ func (s *Session) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, b, secretPerm)
+	return os.WriteFile(path, b, fsperm.Secret)
 }
 
 // LoadSession restores a saved session. The HTTP client is rebuilt so
