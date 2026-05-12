@@ -1,41 +1,21 @@
 package action
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/internal/testzip"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/manifest"
 )
 
 func bodySum(b []byte) string { s := sha256.Sum256(b); return hex.EncodeToString(s[:]) }
-
-func makeZip(t *testing.T, entries map[string]string) []byte {
-	t.Helper()
-	var buf bytes.Buffer
-	zw := zip.NewWriter(&buf)
-	for name, body := range entries {
-		w, err := zw.Create(name)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err = io.WriteString(w, body); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := zw.Close(); err != nil {
-		t.Fatal(err)
-	}
-	return buf.Bytes()
-}
 
 // --- Download ---
 
@@ -131,7 +111,7 @@ func TestFileReplaceRunner_OverwritesExisting(t *testing.T) {
 // --- ZipOverlay ---
 
 func TestZipOverlayRunner_ExtractsFiles(t *testing.T) {
-	overlay := makeZip(t, map[string]string{
+	overlay := testzip.MakeZip(t, map[string]string{
 		"subdir/patch.txt": "patched",
 	})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -158,7 +138,7 @@ func TestZipOverlayRunner_ExtractsFiles(t *testing.T) {
 }
 
 func TestZipOverlayRunner_HashMismatch(t *testing.T) {
-	overlay := makeZip(t, map[string]string{"f.txt": "x"})
+	overlay := testzip.MakeZip(t, map[string]string{"f.txt": "x"})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(overlay)
 	}))

@@ -7,12 +7,12 @@ import (
 	"archive/zip"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/ziputil"
 )
 
 // Kind classifies a Foundry release archive.
@@ -47,24 +47,6 @@ var (
 	ErrNotZip      = errors.New("archive: not a zip file")
 	ErrUnsafePath  = errors.New("archive: zip entry escapes destination")
 )
-
-// magicZip is the standard PKZip header.
-var magicZip = []byte{'P', 'K', 0x03, 0x04}
-
-// IsZip returns true if path is recognisably a zip archive.
-func IsZip(path string) (bool, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return false, err
-	}
-	defer func() { _ = f.Close() }()
-	var head [4]byte
-	n, err := io.ReadFull(f, head[:])
-	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
-		return false, err
-	}
-	return n == 4 && string(head[:]) == string(magicZip), nil
-}
 
 // Detect classifies the zip at path. It does NOT extract; it only reads
 // the central directory.
@@ -148,30 +130,9 @@ func Extract(zipPath, baseDir string) (Kind, error) {
 		if err = os.MkdirAll(filepath.Dir(dest), fsperm.Dir); err != nil {
 			return kind, err
 		}
-		if err = writeZipEntry(f, dest); err != nil {
+		if err = ziputil.WriteEntry(f, dest); err != nil {
 			return kind, err
 		}
 	}
 	return kind, nil
-}
-
-func writeZipEntry(f *zip.File, dest string) error {
-	rc, err := f.Open()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = rc.Close() }()
-	mode := f.Mode().Perm()
-	if mode == 0 {
-		mode = fsperm.File
-	}
-	out, err := os.OpenFile(dest, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
-	if err != nil {
-		return err
-	}
-	if _, err = io.Copy(out, rc); err != nil { //nolint:gosec // size bounded by zip metadata
-		_ = out.Close()
-		return err
-	}
-	return out.Close()
 }

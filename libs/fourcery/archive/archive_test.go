@@ -40,22 +40,6 @@ func TestDetectUnknown(t *testing.T) {
 	}
 }
 
-func TestIsZip(t *testing.T) {
-	zp := testzip.MakeZip(t, map[string]string{"a": "b"})
-	ok, err := IsZip(zp)
-	if err != nil || !ok {
-		t.Fatalf("zip not recognised: ok=%v err=%v", ok, err)
-	}
-	notZip := filepath.Join(t.TempDir(), "x.bin")
-	if err := os.WriteFile(notZip, []byte("MZ\x90\x00 windows exe"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	ok, _ = IsZip(notZip)
-	if ok {
-		t.Fatalf("expected false for non-zip")
-	}
-}
-
 func TestExtractNormalisesNodeRelease(t *testing.T) {
 	zp := testzip.MakeZip(t, map[string]string{
 		"main.mjs":     "console.log('hi')",

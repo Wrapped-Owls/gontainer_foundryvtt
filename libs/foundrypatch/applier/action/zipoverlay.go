@@ -4,12 +4,12 @@ import (
 	"archive/zip"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/ziputil"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/manifest"
 )
 
@@ -58,31 +58,9 @@ func (r zipOverlayRunner) Run(ctx context.Context, act manifest.Action, dest str
 		if err = os.MkdirAll(filepath.Dir(target), fsperm.Dir); err != nil {
 			return err
 		}
-		if err = writeEntry(f, target); err != nil {
+		if err = ziputil.WriteEntry(f, target); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func writeEntry(f *zip.File, target string) error {
-	rc, err := f.Open()
-	if err != nil {
-		return err
-	}
-	out, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, fsperm.File)
-	if err != nil {
-		_ = rc.Close()
-		return err
-	}
-	if _, err = io.Copy(out, rc); err != nil {
-		_ = rc.Close()
-		_ = out.Close()
-		return err
-	}
-	if err = rc.Close(); err != nil {
-		_ = out.Close()
-		return err
-	}
-	return out.Close()
 }

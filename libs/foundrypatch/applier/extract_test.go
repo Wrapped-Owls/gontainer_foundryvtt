@@ -1,8 +1,6 @@
 package applier
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -10,18 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/internal/testzip"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/manifest"
 )
 
 func TestApplyZipOverlay(t *testing.T) {
-	var buf bytes.Buffer
-	zw := zip.NewWriter(&buf)
-	w, _ := zw.Create("nested/file.txt")
-	_, _ = w.Write([]byte("ZZZ"))
-	if err := zw.Close(); err != nil {
-		t.Fatal(err)
-	}
-	zipBytes := buf.Bytes()
+	zipBytes := testzip.MakeZip(t, map[string]string{"nested/file.txt": "ZZZ"})
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(zipBytes)
