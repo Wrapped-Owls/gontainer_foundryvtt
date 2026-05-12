@@ -16,7 +16,7 @@ func startHealthServer(
 	logger *slog.Logger,
 	addr string,
 	foundryPort int,
-) {
+) <-chan error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		probe := health.Default()
@@ -32,14 +32,17 @@ func startHealthServer(
 		w.WriteHeader(http.StatusOK)
 	})
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 3 * time.Second}
+	errCh := make(chan error, 1)
 	go func() {
 		<-ctx.Done()
 		_ = srv.Close()
 	}()
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Warn("health server stopped", "err", err)
+			logger.Error("health server stopped", "err", err)
+			errCh <- err
 		}
 	}()
 	logger.Info("health server listening", "addr", addr)
+	return errCh
 }

@@ -25,7 +25,12 @@ func Run(_ []string, logger *slog.Logger) int {
 		logger.Error("activation failed", "err", err, "install_root", state.App.Paths.InstallRoot)
 		return 1
 	}
-	startHealthServer(ctx, logger, state.App.Paths.HealthAddr, state.Runtime.Port)
+	healthErr := startHealthServer(ctx, logger, state.App.Paths.HealthAddr, state.Runtime.Port)
+	go func() {
+		if err := <-healthErr; err != nil {
+			cancel(err)
+		}
+	}()
 	logger.Info("js runtime selected", "kind", state.JSRuntime.Kind, "path", state.JSRuntime.Path)
 
 	mgr := backoff.NewFromConfig(state.App.Backoff)
