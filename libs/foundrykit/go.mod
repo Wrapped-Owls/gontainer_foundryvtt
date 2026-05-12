@@ -2,8 +2,6 @@ module github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit
 
 go 1.26.2
 
-require (
-	golang.org/x/term v0.43.0
-)
+require golang.org/x/term v0.43.0
 
 require golang.org/x/sys v0.44.0 // indirect
