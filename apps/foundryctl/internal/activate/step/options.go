@@ -17,7 +17,11 @@ func (optionsStep) Apply(_ context.Context, s *State, _ *slog.Logger) error {
 	if _, err := lifecycle.WriteOptions(s.App.Paths.DataPath, s.Runtime); err != nil {
 		return fmt.Errorf("write options: %w", err)
 	}
-	if _, err := lifecycle.WriteAdminPassword(s.App.Paths.DataPath, s.App.Admin.Key, s.App.Admin.PasswordSalt); err != nil {
+	if _, err := lifecycle.WriteAdminPassword(
+		s.App.Paths.DataPath,
+		s.App.Admin.Key,
+		s.App.Admin.PasswordSalt,
+	); err != nil {
 		return fmt.Errorf("write admin.txt: %w", err)
 	}
 	return nil
