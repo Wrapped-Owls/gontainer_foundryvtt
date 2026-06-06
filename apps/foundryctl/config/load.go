@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundryctl/internal/secfuse"
+	fmconfig "github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/config"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/colorlog"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/confloader"
@@ -22,6 +23,7 @@ func LoadFromEnv(c *Config) error {
 		loadInstallFromEnv(&c.Install),
 		loadAdminFromEnv(&c.Admin),
 		loadRuntimeFromEnv(&c.Runtime),
+		func() error { return fmconfig.LoadFromEnv(&c.Manager) },
 		func() error { return colorlog.LoadFromEnv(&c.Log) },
 		func() error { return backoff.LoadFromEnv(&c.Backoff) },
 		func() error { return secfuse.LoadFromEnv(&c.Secrets) },
