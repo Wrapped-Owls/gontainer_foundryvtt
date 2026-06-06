@@ -20,7 +20,11 @@ func TestFolderSource_Materialise(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(src, "resources", "app"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(src, "resources", "app", "main.mjs"), []byte("//"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(src, "resources", "app", "main.mjs"),
+		[]byte("//"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(

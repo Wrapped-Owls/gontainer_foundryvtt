@@ -58,7 +58,8 @@ func FetchURL(build string) string {
 
 func fetchOnce(ctx context.Context, sess *auth.Session, releaseURL string) (string, error) {
 	path := strings.TrimPrefix(releaseURL, auth.BaseURL)
-	result, err := jsonhttp.Request[releaseURLResp, struct{}](ctx,
+	result, err := jsonhttp.Request[releaseURLResp, struct{}](
+		ctx,
 		jsonhttp.ClientConfig{
 			BaseURL: auth.BaseURL,
 			Headers: map[string]string{

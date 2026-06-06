@@ -63,6 +63,9 @@ linters:
       # Optional: Set to true for stricter adherence to the defined order.
       # strict: true
 
+    gomoddirectives:
+      replace-local: true
+
     lll:
       # max line length, lines longer will be reported. Default is 120.
       line-length: 150
