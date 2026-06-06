@@ -19,13 +19,7 @@ tests/                integration and e2e modules
 ## Build
 
 ```sh
-docker build -t foundryvtt-docker:dev .
-```
-
-Or with Nix:
-
-```sh
-nix build .#image
+docker build -f Containerfile -t foundryvtt-docker:dev .
 ```
 
 ## Run

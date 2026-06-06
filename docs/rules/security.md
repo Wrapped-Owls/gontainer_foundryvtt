@@ -28,7 +28,7 @@
 
 ## Container and supply chain
 
-- Base images are pinned by digest in `Dockerfile`. No `:latest` tags.
+- Base images are pinned by digest in `Containerfile`. No `:latest` tags.
 - Go dependencies are pinned in `go.mod`; `go mod tidy` is run via the Makefile/Taskfile,
   not by hand.
 - Downloaded FoundryVTT releases are verified against the presigned URL returned by the

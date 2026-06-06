@@ -2,8 +2,6 @@
 
 let
   foundryctl       = import ./modules/foundryctl.nix { inherit pkgs; repoSrc = src; };
-  bunImage         = import ./bun-image.nix { inherit pkgs; };
-  image            = import ./image.nix { inherit pkgs foundryctl bunImage; };
   updateVendorHash = import ./apps/update-vendor-hash.nix { inherit pkgs; };
 in {
   devShells.default = pkgs.mkShell {
@@ -19,7 +17,7 @@ in {
   };
 
   packages = {
-    inherit foundryctl image;
+    inherit foundryctl;
     default = foundryctl;
   };
 
