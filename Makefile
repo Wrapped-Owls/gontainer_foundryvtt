@@ -1,4 +1,4 @@
-WORKSPACE_MODULES := libs/foundrykit libs/fourcery libs/foundrypatch libs/foundryruntime apps/foundryctl
+WORKSPACE_MODULES := libs/foundrykit libs/fourcery libs/foundrypatch libs/foundryruntime apps/foundrymanager apps/foundryctl
 
 .PHONY: all vet test fmt tidy tidy-tests test-modules workspace-modules clean nix-image nix-hash docker-image
 
@@ -33,4 +33,4 @@ nix-hash:
 
 # Build the Docker image using plain Docker (non-Nix alternative to nix-image).
 docker-image:
-	docker build -t foundryvtt-docker:dev .
+	docker build -f Containerfile -t foundryvtt-docker:dev .
