@@ -27,6 +27,7 @@ ENV FOUNDRY_DATA_PATH=/data \
     FOUNDRY_PATCH_MANIFEST=/etc/foundry/patches/manifest.yaml
 
 RUN mkdir -p /data /foundry /foundry/sources /etc/foundry/patches \
+ && touch /etc/foundry/profiles.json \
  && apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates tzdata \
  && rm -rf /var/lib/apt/lists/*
