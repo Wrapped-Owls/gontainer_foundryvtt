@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundryctl/internal/secfuse"
+	fmconfig "github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/config"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/colorlog"
 )
@@ -11,6 +12,7 @@ type Config struct {
 	Install InstallConfig
 	Admin   AdminConfig
 	Runtime RuntimeConfig
+	Manager fmconfig.Config
 	Log     colorlog.Config
 	Backoff backoff.Config
 	Secrets secfuse.Config
@@ -53,6 +55,7 @@ func Default() Config {
 			HealthAddr:   "127.0.0.1:30001",
 		},
 		Runtime: RuntimeConfig{Port: 30000},
+		Manager: fmconfig.Default(),
 		Log:     colorlog.Default(),
 		Backoff: backoff.Default(),
 		Secrets: secfuse.Default(),

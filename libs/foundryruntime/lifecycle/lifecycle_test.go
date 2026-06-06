@@ -22,7 +22,11 @@ func TestDetectInstalledPresent(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(app, "main.mjs"), []byte("//"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(app, "package.json"), []byte(`{"version":"12.331"}`), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(app, "package.json"),
+		[]byte(`{"version":"12.331"}`),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
 	info, err := DetectInstalled(root)

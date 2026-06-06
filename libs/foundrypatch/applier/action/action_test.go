@@ -145,7 +145,9 @@ func TestZipOverlayRunner_HashMismatch(t *testing.T) {
 	defer srv.Close()
 
 	act := manifest.Action{Type: manifest.ActionZipOverlay, URL: srv.URL, SHA256: "bad"}
-	if err := ZipOverlay(http.DefaultClient).Run(context.Background(), act, t.TempDir()); err == nil {
+	if err := ZipOverlay(
+		http.DefaultClient,
+	).Run(context.Background(), act, t.TempDir()); err == nil {
 		t.Fatal("expected hash mismatch error")
 	}
 }

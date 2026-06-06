@@ -2,16 +2,12 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"log/slog"
-	"path/filepath"
-	"strconv"
 	"syscall"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundryctl/internal/activate"
-	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
-	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/procspawn"
-	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime/jsruntime"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/procloop"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
 func Run(_ []string, logger *slog.Logger) int {
@@ -25,6 +21,7 @@ func Run(_ []string, logger *slog.Logger) int {
 		logger.Error("activation failed", "err", err, "install_root", state.App.Paths.InstallRoot)
 		return 1
 	}
+
 	healthErr := startHealthServer(ctx, logger, state.App.Paths.HealthAddr, state.Runtime.Port)
 	go func() {
 		if err := <-healthErr; err != nil {
@@ -33,68 +30,42 @@ func Run(_ []string, logger *slog.Logger) int {
 	}()
 	logger.Info("js runtime selected", "kind", state.JSRuntime.Kind, "path", state.JSRuntime.Path)
 
-	mgr := backoff.NewFromConfig(state.App.Backoff)
-	mainScript := filepath.Join(state.Install.Root, state.App.Paths.MainScript)
-	for {
-		spec := procspawn.Spec{
-			Path: state.JSRuntime.Path,
-			Args: runtimeArgs(
-				state.JSRuntime.Kind,
-				mainScript,
-				state.App.Paths.DataPath,
-				state.Runtime.Port,
-			),
-			Dir: state.Install.Root,
-		}
-		logger.Info("starting foundry", "argv", spec.Args, "dir", spec.Dir)
+	mgr := procloop.New(
+		toProcloopState(state),
+		&appActivator{base: state, logger: logger},
+		state.App.Manager,
+		state.App.Backoff,
+		logger,
+	)
+	return mgr.Run(ctx)
+}
 
-		var code int
-		if code, err = procspawn.Run(ctx, spec); err != nil {
-			logger.Error("child failed to start", "err", err)
-			return 1
-		}
-		if errors.Is(ctx.Err(), context.Canceled) {
-			logger.Info("shutdown requested; exiting", "exit_code", code)
-			return code
-		}
-		logger.Info("child exited", "exit_code", code)
-		dec, err := mgr.OnFailure(code)
-		if err != nil {
-			logger.Error("backoff state failed", "err", err)
-			return code
-		}
-		switch dec.Mode {
-		case backoff.ModeKubernetes:
-			return code
-		case backoff.ModeNoCache:
-			<-ctx.Done()
-			return code
-		case backoff.ModeBackoff:
-			if dec.Delay == 0 {
-				return code
-			}
-			logger.Info(
-				"backoff",
-				"delay",
-				dec.Delay,
-				"consecutive_failures",
-				dec.State.ConsecutiveFailures,
-			)
-			if err = backoff.Sleep(ctx, dec.Delay); err != nil {
-				return code
-			}
-		}
+func toProcloopState(s activate.State) procloop.State {
+	return procloop.State{
+		DataPath:    s.App.Paths.DataPath,
+		InstallRoot: s.Install.Root,
+		MainScript:  s.App.Paths.MainScript,
+		JSRuntime:   s.JSRuntime,
+		Port:        s.Runtime.Port,
+		Version:     s.Install.Version.String(),
+		Profiles:    s.Profiles,
 	}
 }
 
-func runtimeArgs(kind jsruntime.Kind, mainScript, dataPath string, port int) []string {
-	args := []string{
-		mainScript,
-		"--dataPath=" + dataPath,
-		"--port=" + strconv.Itoa(port),
+// appActivator implements procloop.Activator using the app-layer activate pipeline.
+type appActivator struct {
+	base   activate.State
+	logger *slog.Logger
+}
+
+func (a *appActivator) Switch(
+	ctx context.Context,
+	logger *slog.Logger,
+	p profile.Profile,
+) (procloop.State, error) {
+	newState, err := activate.PrepareProfile(ctx, logger, a.base, p)
+	if err != nil {
+		return procloop.State{}, err
 	}
-	if kind == jsruntime.Bun {
-		return append([]string{"run"}, args...)
-	}
-	return args
+	return toProcloopState(newState), nil
 }

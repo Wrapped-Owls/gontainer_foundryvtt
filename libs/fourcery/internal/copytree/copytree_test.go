@@ -57,7 +57,10 @@ func TestCopy_RejectsEscapingSymlink(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(outside, "secret"), []byte("nope"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(outside, "secret"), filepath.Join(src, "escape")); err != nil {
+	if err := os.Symlink(
+		filepath.Join(outside, "secret"),
+		filepath.Join(src, "escape"),
+	); err != nil {
 		t.Fatal(err)
 	}
 

@@ -3,6 +3,7 @@ module github.com/wrapped-owls/gontainer_foundryvtt/apps/foundryctl
 go 1.26.2
 
 require (
+	github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager v0.0.0
 	github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit v0.0.0
 	github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch v0.0.0
 	github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime v0.0.0
@@ -18,6 +19,7 @@ require (
 )
 
 replace (
+	github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager => ../foundrymanager
 	github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit => ../../libs/foundrykit
 	github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch => ../../libs/foundrypatch
 	github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime => ../../libs/foundryruntime
