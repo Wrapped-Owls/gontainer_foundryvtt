@@ -26,21 +26,27 @@ type Runner struct {
 }
 
 // New creates a Runner ready to run. The dashboard is started internally when
-// Run is called.
+// Run is called. initialActive, if non-empty, is pre-set as the active profile
+// name so the dashboard reports the correct state from the first request.
 func New(
 	initial State,
+	initialActive string,
 	activator Activator,
 	cfg config.Config,
 	backoffCfg backoff.Config,
 	logger *slog.Logger,
 ) *Runner {
+	ctrl := controller.New()
+	if initialActive != "" {
+		ctrl.SetActive(initialActive)
+	}
 	return &Runner{
 		state:      initial,
 		activator:  activator,
 		cfg:        cfg,
 		backoffCfg: backoffCfg,
 		logger:     logger,
-		ctrl:       controller.New(),
+		ctrl:       ctrl,
 	}
 }
 

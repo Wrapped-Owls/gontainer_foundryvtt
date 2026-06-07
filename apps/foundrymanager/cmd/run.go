@@ -27,6 +27,7 @@ func Run(_ []string, logger *slog.Logger) int {
 
 	mgr := procloop.New(
 		procloop.State{},
+		"",
 		&noopActivator{},
 		cfg,
 		backoff.Config{},

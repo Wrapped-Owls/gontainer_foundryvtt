@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profloader"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/procspawn"
 )
 
@@ -25,6 +26,9 @@ func (r *Runner) applySwitch(ctx context.Context) error {
 		r.state = newState
 		r.mu.Unlock()
 		r.ctrl.SetActive(name)
+		if err := profloader.WriteActive(r.cfg.ProfilesFile, name); err != nil {
+			r.logger.Warn("failed to persist active profile", "profile", name, "err", err)
+		}
 		return nil
 	default:
 		return nil
