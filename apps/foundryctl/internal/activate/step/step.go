@@ -15,11 +15,12 @@ import (
 
 // State accumulates the result of each preparation step.
 type State struct {
-	App       appconfig.Config
-	Runtime   runtimecfg.Config
-	JSRuntime jsruntime.Runtime
-	Install   forge.Install
-	Profiles  []profile.Profile
+	App           appconfig.Config
+	Runtime       runtimecfg.Config
+	JSRuntime     jsruntime.Runtime
+	Install       forge.Install
+	Profiles      []profile.Profile
+	ActiveProfile string
 }
 
 // Step is the strategy interface for one phase of the activation sequence.
