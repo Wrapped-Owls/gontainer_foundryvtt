@@ -44,7 +44,7 @@ jobs:
       - name: Commit updated hash
         shell: bash
         run: |
-          changed_files="$(git status --porcelain -- nix/modules/foundryctl.nix || true)"
+          changed_files="$(git status --porcelain -- nix/modules/foundryctl.nix nix/modules/taverncord.nix || true)"
 
           if [ -z "${changed_files}" ]; then
             echo "vendorHash unchanged — no commit needed"
@@ -53,6 +53,6 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add nix/modules/foundryctl.nix
-          git commit -m ":memo: chore(nix): update foundryctl vendorHash"
+          git add nix/modules/foundryctl.nix nix/modules/taverncord.nix
+          git commit -m ":memo: chore(nix): update workspace vendorHash"
           git push origin "HEAD:${{ github.ref_name }}"
