@@ -12,11 +12,12 @@ import (
 )
 
 type State struct {
-	App       appconfig.Config
-	Runtime   runtimecfg.Config
-	JSRuntime jsruntime.Runtime
-	Install   forge.Install
-	Profiles  []profile.Profile
+	App           appconfig.Config
+	Runtime       runtimecfg.Config
+	JSRuntime     jsruntime.Runtime
+	Install       forge.Install
+	Profiles      []profile.Profile
+	ActiveProfile string
 }
 
 type Step interface {
