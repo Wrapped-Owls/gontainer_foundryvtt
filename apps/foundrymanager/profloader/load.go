@@ -4,16 +4,16 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
-func Load(filePath, envPrefix string) ([]profile.Profile, error) {
-	base, err := FromFile(filePath)
+func Load(filePath, envPrefix string) ([]profile.Profile, string, error) {
+	base, active, err := FromFile(filePath)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	overrides, err := FromEnv(envPrefix)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return Merge(base, overrides), nil
+	return Merge(base, overrides), active, nil
 }
 
 func Merge(base, overrides []profile.Profile) []profile.Profile {
