@@ -23,20 +23,27 @@ type Runner struct {
 	ctrl       *controller.SwitchController
 }
 
-func New(
-	initial State,
-	activator Activator,
-	cfg config.Config,
-	backoffCfg backoff.Config,
-	logger *slog.Logger,
-) *Runner {
+type Params struct {
+	Initial       State
+	InitialActive string
+	Activator     Activator
+	Config        config.Config
+	Backoff       backoff.Config
+	Logger        *slog.Logger
+}
+
+func New(params Params) *Runner {
+	ctrl := controller.New()
+	if params.InitialActive != "" {
+		ctrl.SetActive(params.InitialActive)
+	}
 	return &Runner{
-		state:      initial,
-		activator:  activator,
-		cfg:        cfg,
-		backoffCfg: backoffCfg,
-		logger:     logger,
-		ctrl:       controller.New(),
+		state:      params.Initial,
+		activator:  params.Activator,
+		cfg:        params.Config,
+		backoffCfg: params.Backoff,
+		logger:     params.Logger,
+		ctrl:       ctrl,
 	}
 }
 

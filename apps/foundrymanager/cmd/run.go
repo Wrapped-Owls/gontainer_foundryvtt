@@ -22,13 +22,14 @@ func Run(_ []string, logger *slog.Logger) int {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	mgr := procloop.New(
-		procloop.State{},
-		&noopActivator{},
-		cfg,
-		backoff.Config{},
-		logger,
-	)
+	mgr := procloop.New(procloop.Params{
+		Initial:       procloop.State{},
+		InitialActive: "",
+		Activator:     &noopActivator{},
+		Config:        cfg,
+		Backoff:       backoff.Config{},
+		Logger:        logger,
+	})
 	return mgr.Run(ctx)
 }
 

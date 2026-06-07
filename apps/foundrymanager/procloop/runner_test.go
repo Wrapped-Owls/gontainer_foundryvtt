@@ -10,13 +10,14 @@ import (
 )
 
 func makeRunner(profiles []profile.Profile) *Runner {
-	return New(
-		State{Profiles: profiles, Version: "14.0.0"},
-		nil,
-		fmconfig.Config{},
-		backoff.Config{},
-		slog.Default(),
-	)
+	return New(Params{
+		Initial:       State{Profiles: profiles, Version: "14.0.0"},
+		InitialActive: "",
+		Activator:     nil,
+		Config:        fmconfig.Config{},
+		Backoff:       backoff.Config{},
+		Logger:        slog.Default(),
+	})
 }
 
 func TestRequestSwitch_unknownProfile(t *testing.T) {
