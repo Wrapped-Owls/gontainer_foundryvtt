@@ -56,11 +56,32 @@ func TestLoad_fileAndEnv(t *testing.T) {
 	t.Setenv("TEST_LOAD_0_NAME", "bob")
 	t.Setenv("TEST_LOAD_0_DATA_PATH", "/env/bob")
 
-	profiles, err := Load(path, "TEST_LOAD")
+	profiles, _, err := Load(path, "TEST_LOAD")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(profiles) != 2 {
 		t.Fatalf("expected 2, got %d: %+v", len(profiles), profiles)
+	}
+}
+
+func TestLoad_returnsActive(t *testing.T) {
+	data, _ := json.Marshal(map[string]any{
+		"active": "alice",
+		"profiles": []map[string]any{
+			{"name": "alice", "dataPath": "/d/alice"},
+		},
+	})
+	path := filepath.Join(t.TempDir(), "profiles.json")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, active, err := Load(path, "NO_SUCH_PREFIX")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if active != "alice" {
+		t.Errorf("expected alice, got %q", active)
 	}
 }

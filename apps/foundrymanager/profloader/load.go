@@ -6,16 +6,17 @@ import (
 
 // Load combines FromFile and FromEnv. File profiles are loaded first; env
 // profiles with matching Name update those fields; unmatched names are appended.
-func Load(filePath, envPrefix string) ([]profile.Profile, error) {
-	base, err := FromFile(filePath)
+// The second return value is the last-active profile name recorded in the file.
+func Load(filePath, envPrefix string) ([]profile.Profile, string, error) {
+	base, active, err := FromFile(filePath)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	overrides, err := FromEnv(envPrefix)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return Merge(base, overrides), nil
+	return Merge(base, overrides), active, nil
 }
 
 // Merge applies overrides on top of base: a matching Name updates non-empty
