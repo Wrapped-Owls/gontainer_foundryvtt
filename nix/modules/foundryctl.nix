@@ -17,7 +17,7 @@ pkgs.buildGoModule {
   version = "0.0.0";
   src = repoSrc;
 
-  vendorHash = "sha256-+duo006vVdYUVx9i6SPZLxhy4YYKdaW6F6TBySnCBy8=";
+  vendorHash = "sha256-+Jp6wWnET6O3w/GG56CNoDc4TlrYXNTo60vs5puPRUc=";
 
   overrideModAttrs = _: {
     # go mod vendor fails when go.work is present (nixpkgs #347998).
