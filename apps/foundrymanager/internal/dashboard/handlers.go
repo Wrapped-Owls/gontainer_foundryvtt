@@ -7,6 +7,8 @@ import (
 	"net/http"
 )
 
+const msgInvalidBody = "invalid request body"
+
 func registerHandlers(
 	mux *http.ServeMux,
 	sw Switcher,
@@ -14,15 +16,7 @@ func registerHandlers(
 	ps ProfileStore,
 	logger *slog.Logger,
 ) {
-	registerProfileHandlers(mux, ps, logger)
-	mux.HandleFunc("GET /profiles", func(w http.ResponseWriter, _ *http.Request) {
-		profiles := ps.ListProfiles()
-		refs := make([]profileRef, len(profiles))
-		for i, p := range profiles {
-			refs[i] = profileRef{Name: p.Name, Label: p.Label}
-		}
-		writeJSON(w, logger, http.StatusOK, profilesResponse{Active: sw.Active(), Profiles: refs})
-	})
+	registerProfileHandlers(mux, sw, ps, logger)
 	registerSwitchHandlers(mux, sw, logger)
 	registerVersionHandlers(mux, sw, vm, logger)
 }
@@ -31,8 +25,7 @@ func registerSwitchHandlers(mux *http.ServeMux, sw Switcher, logger *slog.Logger
 	mux.HandleFunc("POST /switch", func(w http.ResponseWriter, r *http.Request) {
 		var body switchBody
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeJSON(w, logger, http.StatusBadRequest,
-				errorResponse{Error: "invalid request body"})
+			writeJSON(w, logger, http.StatusBadRequest, errorResponse{Error: msgInvalidBody})
 			return
 		}
 		if !body.Force {
@@ -91,12 +84,7 @@ func registerVersionHandlers(
 	mux.HandleFunc("POST /versions/download", func(w http.ResponseWriter, r *http.Request) {
 		var body downloadBody
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeJSON(
-				w,
-				logger,
-				http.StatusBadRequest,
-				errorResponse{Error: "invalid request body"},
-			)
+			writeJSON(w, logger, http.StatusBadRequest, errorResponse{Error: msgInvalidBody})
 			return
 		}
 		if body.Version == "" {

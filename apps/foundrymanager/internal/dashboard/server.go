@@ -14,12 +14,14 @@ type Params struct {
 	Switcher Switcher
 	Versions VersionManager
 	Profiles ProfileStore
+	Logs     LogReader
 }
 
 func Start(ctx context.Context, params Params) <-chan error {
 	const readHeaderTimeout = 3 * time.Second
 	mux := http.NewServeMux()
 	registerHandlers(mux, params.Switcher, params.Versions, params.Profiles, params.Logger)
+	registerLogHandlers(mux, params.Logs, params.Logger)
 
 	srv := &http.Server{Addr: params.Addr, Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
 	errCh := make(chan error, 1)

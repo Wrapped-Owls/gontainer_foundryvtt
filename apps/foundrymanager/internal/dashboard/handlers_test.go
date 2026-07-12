@@ -75,7 +75,12 @@ func (s *stubProfiles) CreateProfile(
 	return s.createErr
 }
 
-func (s *stubProfiles) DeleteProfile(name string) error { s.lastDelete = name; return s.deleteErr }
+func (s *stubProfiles) DeleteProfile(
+	name string,
+) error {
+	s.lastDelete = name
+	return s.deleteErr
+}
 
 func (s *stubProfiles) UpdateProfile(name string, _ profile.Profile) error {
 	s.lastUpdateName = name

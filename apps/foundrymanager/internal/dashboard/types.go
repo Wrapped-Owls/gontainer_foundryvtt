@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/foundrystatus"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/logstore"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
@@ -17,6 +18,11 @@ type Switcher interface {
 type VersionManager interface {
 	Installed(ctx context.Context) ([]string, error)
 	Download(ctx context.Context, version, url string) error
+}
+
+type LogReader interface {
+	Logs(n int) []string
+	Events(cursor int) ([]logstore.Event, int)
 }
 
 type ProfileStore interface {
@@ -72,6 +78,15 @@ type versionsResponse struct {
 type downloadBody struct {
 	Version string `json:"version"`
 	URL     string `json:"url"`
+}
+
+type logsResponse struct {
+	Lines []string `json:"lines"`
+}
+
+type eventsResponse struct {
+	Events []logstore.Event `json:"events"`
+	Next   int              `json:"next"`
 }
 
 type statusResponse struct {
