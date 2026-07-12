@@ -32,7 +32,8 @@ func registerSwitchHandlers(mux *http.ServeMux, sw Switcher, logger *slog.Logger
 		if !body.Force {
 			if st, err := sw.FoundryStatus(r.Context()); err == nil && st.Active && st.Users > 0 {
 				writeJSON(w, logger, http.StatusConflict, errorResponse{Error: fmt.Sprintf(
-					"%d user(s) currently online; resend with force to switch anyway", st.Users)})
+					"%d user(s) currently online; resend with force to switch anyway", st.Users,
+				)})
 				return
 			}
 		}
