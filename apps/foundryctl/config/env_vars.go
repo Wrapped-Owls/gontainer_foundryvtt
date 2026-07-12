@@ -7,6 +7,7 @@ const (
 	envManifestPath = "FOUNDRY_PATCH_MANIFEST"
 	envMainScript   = "FOUNDRY_MAIN_SCRIPT"
 	envHealthAddr   = "FOUNDRY_HEALTH_ADDR"
+	envLicenseCache = "FOUNDRY_LICENSE_CACHE"
 
 	envPort = "FOUNDRY_PORT"
 
