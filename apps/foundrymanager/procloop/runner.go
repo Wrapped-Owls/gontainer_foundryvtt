@@ -4,14 +4,21 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"sync"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/config"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/controller"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/dashboard"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/foundrystatus"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 )
+
+const statusTimeout = 2 * time.Second
+
+var _ dashboard.Switcher = (*Runner)(nil)
 
 type Runner struct {
 	mu         sync.RWMutex
@@ -21,6 +28,7 @@ type Runner struct {
 	cfg        config.Config
 	logger     *slog.Logger
 	ctrl       *controller.SwitchController
+	status     *foundrystatus.Client
 }
 
 type Params struct {
@@ -44,6 +52,7 @@ func New(params Params) *Runner {
 		backoffCfg: params.Backoff,
 		logger:     params.Logger,
 		ctrl:       ctrl,
+		status:     foundrystatus.NewClient(&http.Client{Timeout: statusTimeout}),
 	}
 }
 
@@ -79,6 +88,17 @@ func (r *Runner) Version() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.state.Version
+}
+
+func (r *Runner) FoundryStatus(ctx context.Context) (foundrystatus.Status, error) {
+	r.mu.RLock()
+	port := r.state.Port
+	r.mu.RUnlock()
+
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, statusTimeout)
+	defer cancel()
+	return r.status.Fetch(ctx, fmt.Sprintf("http://127.0.0.1:%d", port))
 }
 
 func (r *Runner) currentProfiles() []profile.Profile {
