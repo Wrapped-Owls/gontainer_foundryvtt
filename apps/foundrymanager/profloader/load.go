@@ -65,6 +65,9 @@ func applyNonEmpty(dst *profile.Profile, src profile.Profile) {
 	if src.Version != "" {
 		dst.Version = src.Version
 	}
+	if src.World != "" {
+		dst.World = src.World
+	}
 	if src.ManifestPath != "" {
 		dst.ManifestPath = src.ManifestPath
 	}

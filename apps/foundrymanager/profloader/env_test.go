@@ -78,6 +78,7 @@ func TestFromEnv_mixedKeys(t *testing.T) {
 func TestFromEnv_partialFields(t *testing.T) {
 	t.Setenv("TEST_PARTIAL_0_NAME", "alice")
 	t.Setenv("TEST_PARTIAL_0_VERSION", "14.0.0")
+	t.Setenv("TEST_PARTIAL_0_WORLD", "my-world")
 
 	profiles, err := FromEnv("TEST_PARTIAL")
 	if err != nil {
@@ -88,6 +89,9 @@ func TestFromEnv_partialFields(t *testing.T) {
 	}
 	if profiles[0].Name != "alice" || profiles[0].Version != "14.0.0" {
 		t.Errorf("unexpected profile: %+v", profiles[0])
+	}
+	if profiles[0].World != "my-world" {
+		t.Errorf("expected world my-world, got %q", profiles[0].World)
 	}
 	if profiles[0].DataPath != "" {
 		t.Errorf("expected empty DataPath, got %q", profiles[0].DataPath)

@@ -49,6 +49,9 @@ func PrepareProfile(
 	if p.ManifestPath != "" {
 		s.App.Paths.ManifestPath = p.ManifestPath
 	}
+	if p.World != "" {
+		s.Runtime.World = p.World
+	}
 
 	versionChanged := p.Version != "" && p.Version != base.Install.Version.String()
 	if versionChanged {

@@ -49,6 +49,18 @@ func TestMerge_overlap(t *testing.T) {
 	}
 }
 
+func TestMerge_world(t *testing.T) {
+	base := []profile.Profile{{Name: "alice", World: "old-world"}}
+	ov := []profile.Profile{{Name: "alice", World: "new-world"}}
+	result := Merge(base, ov)
+	if len(result) != 1 {
+		t.Fatalf("expected 1, got %d", len(result))
+	}
+	if result[0].World != "new-world" {
+		t.Errorf("expected new-world, got %q", result[0].World)
+	}
+}
+
 func TestLoad_fileAndEnv(t *testing.T) {
 	path := writeProfilesFile(t, []map[string]any{
 		{"name": "alice", "dataPath": "/file/alice"},

@@ -10,5 +10,6 @@ type Profile struct {
 	AdminKey          string `json:"adminKey"`
 	AdminPasswordSalt string `json:"adminPasswordSalt"`
 	Version           string `json:"version"`
+	World             string `json:"world"`
 	ManifestPath      string `json:"manifestPath"`
 }

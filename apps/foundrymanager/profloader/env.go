@@ -18,6 +18,7 @@ var fieldSuffixes = []string{
 	"_DATA_PATH",
 	"_ADMIN_KEY",
 	"_VERSION",
+	"_WORLD",
 	"_LABEL",
 	"_NAME",
 }
@@ -44,6 +45,7 @@ func FromEnv(prefix string) ([]profile.Profile, error) {
 			confloader.BindField(&p.AdminKey, pfx+"_ADMIN_KEY", nil),
 			confloader.BindField(&p.AdminPasswordSalt, pfx+"_ADMIN_PASSWORD_SALT", nil),
 			confloader.BindField(&p.Version, pfx+"_VERSION", nil),
+			confloader.BindField(&p.World, pfx+"_WORLD", nil),
 			confloader.BindField(&p.ManifestPath, pfx+"_MANIFEST_PATH", nil),
 		); err != nil {
 			return nil, err
