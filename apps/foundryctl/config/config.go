@@ -25,6 +25,7 @@ type PathsConfig struct {
 	ManifestPath string
 	MainScript   string
 	HealthAddr   string
+	LicenseCache string
 }
 
 type InstallConfig struct {
@@ -53,6 +54,7 @@ func Default() Config {
 			ManifestPath: "/etc/foundry/patches/manifest.yaml",
 			MainScript:   "resources/app/main.mjs",
 			HealthAddr:   "127.0.0.1:30001",
+			LicenseCache: "/foundry/licenses",
 		},
 		Runtime: RuntimeConfig{Port: 30000},
 		Manager: fmconfig.Default(),

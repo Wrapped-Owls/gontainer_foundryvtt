@@ -22,6 +22,7 @@ func Prepare(ctx context.Context, logger *slog.Logger) (State, error) {
 		step.Secrets(),
 		step.Install(),
 		step.Options(),
+		step.License(),
 		step.Patches(),
 		step.JSRuntime(),
 		step.Profiles(),
@@ -61,6 +62,7 @@ func PrepareProfile(
 			step.EnsureDirs(),
 			step.Install(),
 			step.Options(),
+			step.License(),
 			step.Patches(),
 		)
 	}
@@ -68,5 +70,6 @@ func PrepareProfile(
 		ctx, logger, s,
 		step.EnsureDirs(),
 		step.Options(),
+		step.License(),
 	)
 }
