@@ -18,6 +18,18 @@ const (
 	maxPartialLine = 64 * 1024
 )
 
+// errorMarkers are the built-in, case-insensitive substrings that classify a log
+// line as an error worth keeping. They are matched in addition to any operator
+// patterns so problem detection works out of the box; "permission" catches the
+// actor-permission errors that motivated log capture.
+var errorMarkers = []string{"error", "uncaught", "unhandled", "fatal", "permission"}
+
+// Event kinds surfaced by the store.
+const (
+	kindError = "error"
+	kindCrash = "crash"
+)
+
 // Event is a detected log occurrence worth surfacing (an error match or a crash).
 type Event struct {
 	Time    time.Time `json:"time"`
@@ -78,7 +90,7 @@ func (s *Store) RecordCrash(exitCode int) {
 	defer s.mu.Unlock()
 	s.pushEvent(Event{
 		Time:    time.Now(),
-		Kind:    "crash",
+		Kind:    kindCrash,
 		Message: fmt.Sprintf("Foundry exited with code %d", exitCode),
 	})
 }
@@ -109,24 +121,35 @@ func (s *Store) EventsSince(cursor int) ([]Event, int) {
 	return out, next
 }
 
-// appendLine stores a line and flags it as an event when it matches a pattern.
+// appendLine keeps only error lines: info/debug noise is dropped so the buffer
+// and events surface problems. Each retained line becomes an error event, with
+// consecutive duplicates coalesced so a flood does not spam the alert channel.
 // The caller holds s.mu.
 func (s *Store) appendLine(line string) {
+	if !s.isError(line) {
+		return
+	}
 	s.lines = append(s.lines, line)
 	if len(s.lines) > s.maxLines {
 		s.lines = s.lines[len(s.lines)-s.maxLines:]
 	}
-	if s.matches(line) {
-		s.pushEvent(Event{Time: time.Now(), Kind: "error", Message: line})
+	if n := len(s.events); n > 0 {
+		if last := s.events[n-1]; last.Kind == kindError && last.Message == line {
+			return
+		}
 	}
+	s.pushEvent(Event{Time: time.Now(), Kind: kindError, Message: line})
 }
 
-// matches reports whether line contains any configured pattern. Caller holds s.mu.
-func (s *Store) matches(line string) bool {
-	if len(s.patterns) == 0 {
-		return false
-	}
+// isError reports whether line looks like an error: it contains a built-in error
+// marker or an operator-configured pattern. Caller holds s.mu.
+func (s *Store) isError(line string) bool {
 	low := strings.ToLower(line)
+	for _, m := range errorMarkers {
+		if strings.Contains(low, m) {
+			return true
+		}
+	}
 	for _, p := range s.patterns {
 		if strings.Contains(low, p) {
 			return true
