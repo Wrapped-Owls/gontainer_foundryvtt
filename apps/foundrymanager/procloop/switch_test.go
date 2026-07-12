@@ -75,6 +75,26 @@ func TestApplySwitch_success(t *testing.T) {
 	}
 }
 
+func TestApplySwitch_preservesLiveProfileList(t *testing.T) {
+	activator := &stubActivator{result: State{Version: "13.0.0"}}
+	r := makeRunnerWithProfiles([]profile.Profile{
+		{Name: "alice", Version: "13.0.0"},
+		{Name: "bob", Version: "14.0.0"},
+	})
+	r.activator = activator
+
+	r.ctrl.SwitchCh <- "alice"
+	if err := r.applySwitch(context.Background()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(r.state.Profiles) != 2 {
+		t.Fatalf("live profile list lost after switch: %+v", r.state.Profiles)
+	}
+	if bob, ok := r.GetProfile("bob"); !ok || bob.Version != "14.0.0" {
+		t.Errorf("bob's data not preserved: %+v ok=%v", bob, ok)
+	}
+}
+
 func TestApplySwitch_unknownProfile(t *testing.T) {
 	r := makeRunnerWithProfiles([]profile.Profile{{Name: "alice"}})
 	r.ctrl.SwitchCh <- "unknown"

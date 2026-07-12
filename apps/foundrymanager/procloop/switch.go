@@ -24,6 +24,7 @@ func (r *Runner) applySwitch(ctx context.Context) error {
 			return fmt.Errorf("switch to %q: %w", name, err)
 		}
 		r.mu.Lock()
+		newState.Profiles = r.state.Profiles
 		r.state = newState
 		r.mu.Unlock()
 		r.ctrl.SetActive(name)
