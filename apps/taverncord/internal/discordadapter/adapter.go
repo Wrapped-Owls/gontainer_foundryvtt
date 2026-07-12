@@ -54,6 +54,13 @@ func (a *Adapter) Open() error {
 	return nil
 }
 
+func (a *Adapter) SendMessage(channelID, content string) error {
+	if _, err := a.session.ChannelMessageSend(channelID, content); err != nil {
+		return fmt.Errorf("send message: %w", err)
+	}
+	return nil
+}
+
 func (a *Adapter) Close() error {
 	for _, cmd := range a.registered {
 		if err := a.session.ApplicationCommandDelete(a.appID, a.guildID, cmd.ID); err != nil {

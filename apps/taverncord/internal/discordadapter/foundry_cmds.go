@@ -103,6 +103,33 @@ func (c *downloadCmd) Handle(ctx context.Context, opts OptionMap, r command.Resp
 	return c.cmds.Download(ctx, r, opts.String("version"), opts.String("url"))
 }
 
+type logsCmd struct{ cmds *command.ProfileCommands }
+
+func (c *logsCmd) Spec() *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionSubCommand,
+		Name:        "logs",
+		Description: "Show the most recent Foundry log lines",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionInteger,
+				Name:        "tail",
+				Description: "How many lines to show (default 20)",
+			},
+		},
+	}
+}
+
+func (c *logsCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
+	tail := opts.Int("tail")
+	const defaultLogTail = 20
+
+	if tail == 0 {
+		tail = defaultLogTail
+	}
+	return c.cmds.Logs(ctx, r, tail)
+}
+
 func ListCmd(cmds *command.ProfileCommands) SubCommand { return &listCmd{cmds: cmds} }
 
 func SwitchCmd(cmds *command.ProfileCommands) SubCommand { return &switchCmd{cmds: cmds} }
@@ -112,6 +139,8 @@ func StatusCmd(cmds *command.ProfileCommands) SubCommand { return &statusCmd{cmd
 func VersionsCmd(cmds *command.ProfileCommands) SubCommand { return &versionsCmd{cmds: cmds} }
 
 func DownloadCmd(cmds *command.ProfileCommands) SubCommand { return &downloadCmd{cmds: cmds} }
+
+func LogsCmd(cmds *command.ProfileCommands) SubCommand { return &logsCmd{cmds: cmds} }
 
 func interruptOf(opts OptionMap) command.Interrupt {
 	if opts.Bool("force") {
