@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
@@ -35,6 +36,23 @@ type FoundryClient interface {
 	CreateProfile(ctx context.Context, p ProfileInput) error
 	UpdateProfile(ctx context.Context, name string, p ProfileInput) error
 	DeleteProfile(ctx context.Context, name string) error
+	Logs(ctx context.Context, tail int) (LogsData, error)
+	Events(ctx context.Context, since int) (EventsData, error)
+}
+
+type LogsData struct {
+	Lines []string
+}
+
+type EventsData struct {
+	Events []EventItem
+	Next   int
+}
+
+type EventItem struct {
+	Time    time.Time
+	Kind    string
+	Message string
 }
 
 type ProfileInfo struct {

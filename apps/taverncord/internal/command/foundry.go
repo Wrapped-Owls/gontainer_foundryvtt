@@ -63,6 +63,23 @@ func (pc *ProfileCommands) Switch(
 	return r.Edit(ctx, fmt.Sprintf("✅ Switched to **%s**  -  server is restarting.", name))
 }
 
+func (pc *ProfileCommands) Logs(ctx context.Context, r Responder, tail int) error {
+	const logsCharBudget = 1800
+	logs, err := pc.client.Logs(ctx, tail)
+	if err != nil {
+		pc.logger.Error("fetch logs failed", "err", err)
+		return r.Send(ctx, "Failed to fetch logs from Foundry.", Private)
+	}
+	if len(logs.Lines) == 0 {
+		return r.Send(ctx, "No logs captured yet.", Private)
+	}
+	body := strings.Join(logs.Lines, "\n")
+	if len(body) > logsCharBudget {
+		body = "..." + body[len(body)-logsCharBudget:]
+	}
+	return r.Send(ctx, "```\n"+body+"\n```", Private)
+}
+
 func (pc *ProfileCommands) Versions(ctx context.Context, r Responder) error {
 	versions, err := pc.client.Versions(ctx)
 	if err != nil {
