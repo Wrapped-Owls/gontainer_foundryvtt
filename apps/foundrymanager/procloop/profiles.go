@@ -76,12 +76,8 @@ func applyOverrides(dst *profile.Profile, src profile.Profile) {
 		src string
 	}{
 		{&dst.Label, src.Label},
-		{&dst.DataPath, src.DataPath},
-		{&dst.AdminKey, src.AdminKey},
-		{&dst.AdminPasswordSalt, src.AdminPasswordSalt},
 		{&dst.Version, src.Version},
 		{&dst.World, src.World},
-		{&dst.ManifestPath, src.ManifestPath},
 	} {
 		if f.src != "" {
 			*f.dst = f.src

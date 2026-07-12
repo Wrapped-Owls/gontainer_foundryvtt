@@ -64,12 +64,10 @@ type eventsResp struct {
 }
 
 type profileBody struct {
-	Name         string `json:"name,omitempty"`
-	Label        string `json:"label,omitempty"`
-	DataPath     string `json:"dataPath,omitempty"`
-	Version      string `json:"version,omitempty"`
-	World        string `json:"world,omitempty"`
-	ManifestPath string `json:"manifestPath,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Label   string `json:"label,omitempty"`
+	Version string `json:"version,omitempty"`
+	World   string `json:"world,omitempty"`
 }
 
 type errorResp struct {

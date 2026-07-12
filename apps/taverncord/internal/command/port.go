@@ -64,12 +64,10 @@ type ProfileInfo struct {
 }
 
 type ProfileInput struct {
-	Name         string
-	Label        string
-	DataPath     string
-	Version      string
-	World        string
-	ManifestPath string
+	Name    string
+	Label   string
+	Version string
+	World   string
 }
 
 type ProfilesData struct {

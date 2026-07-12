@@ -16,18 +16,8 @@ func nameOption(desc string) *discordgo.ApplicationCommandOption {
 	}
 }
 
-type dataPathRequirement string
-
-func editableOptions(dataPathRequired dataPathRequirement) []*discordgo.ApplicationCommandOption {
-	const dataPathMandatory dataPathRequirement = "mandatory"
-
+func editableOptions() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
-		{
-			Type:        discordgo.ApplicationCommandOptionString,
-			Name:        "datapath",
-			Description: "Foundry data directory for this profile",
-			Required:    dataPathRequired == dataPathMandatory,
-		},
 		{
 			Type:        discordgo.ApplicationCommandOptionString,
 			Name:        "label",
@@ -43,22 +33,15 @@ func editableOptions(dataPathRequired dataPathRequirement) []*discordgo.Applicat
 			Name:        "world",
 			Description: "World to launch on start",
 		},
-		{
-			Type:        discordgo.ApplicationCommandOptionString,
-			Name:        "manifest",
-			Description: "Patch manifest path",
-		},
 	}
 }
 
 func profileInput(opts OptionMap, name string) command.ProfileInput {
 	return command.ProfileInput{
-		Name:         name,
-		Label:        opts.String("label"),
-		DataPath:     opts.String("datapath"),
-		Version:      opts.String("version"),
-		World:        opts.String("world"),
-		ManifestPath: opts.String("manifest"),
+		Name:    name,
+		Label:   opts.String("label"),
+		Version: opts.String("version"),
+		World:   opts.String("world"),
 	}
 }
 
@@ -80,15 +63,13 @@ func (c *profileShowCmd) Handle(ctx context.Context, opts OptionMap, r command.R
 type profileEditCmd struct{ cmds *command.ProfileCommands }
 
 func (c *profileEditCmd) Spec() *discordgo.ApplicationCommandOption {
-	const dataPathOptional dataPathRequirement = "optional"
-
 	return &discordgo.ApplicationCommandOption{
 		Type:        discordgo.ApplicationCommandOptionSubCommand,
 		Name:        "profile-edit",
 		Description: "Edit an existing Foundry profile",
 		Options: append(
 			[]*discordgo.ApplicationCommandOption{nameOption("Profile to edit")},
-			editableOptions(dataPathOptional)...,
+			editableOptions()...,
 		),
 	}
 }
