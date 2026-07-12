@@ -34,6 +34,10 @@ func (f *Forge) Resolve(ctx context.Context, desired string) (Plan, error) {
 	return plan, nil
 }
 
+func (f *Forge) Installed() ([]Candidate, error) {
+	return scanCandidates(f.installRoot)
+}
+
 func (f *Forge) Acquire(ctx context.Context, p Plan) (Install, error) {
 	switch p.Action {
 	case ActionUseExisting:
