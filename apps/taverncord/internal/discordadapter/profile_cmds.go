@@ -75,25 +75,6 @@ func (c *profileShowCmd) Handle(ctx context.Context, opts OptionMap, r command.R
 	return c.cmds.ShowProfile(ctx, r, opts.String("name"))
 }
 
-// profileCreateCmd handles /foundry profile-create.
-type profileCreateCmd struct{ cmds *command.ProfileCommands }
-
-func (c *profileCreateCmd) Spec() *discordgo.ApplicationCommandOption {
-	return &discordgo.ApplicationCommandOption{
-		Type:        discordgo.ApplicationCommandOptionSubCommand,
-		Name:        "profile-create",
-		Description: "Create a new Foundry profile",
-		Options: append(
-			[]*discordgo.ApplicationCommandOption{nameOption("New profile name")},
-			editableOptions(true)...,
-		),
-	}
-}
-
-func (c *profileCreateCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
-	return c.cmds.CreateProfile(ctx, r, profileInput(opts, opts.String("name")))
-}
-
 // profileEditCmd handles /foundry profile-edit.
 type profileEditCmd struct{ cmds *command.ProfileCommands }
 
@@ -114,38 +95,8 @@ func (c *profileEditCmd) Handle(ctx context.Context, opts OptionMap, r command.R
 	return c.cmds.EditProfile(ctx, r, name, profileInput(opts, name))
 }
 
-// profileDeleteCmd handles /foundry profile-delete.
-type profileDeleteCmd struct{ cmds *command.ProfileCommands }
-
-func (c *profileDeleteCmd) Spec() *discordgo.ApplicationCommandOption {
-	return &discordgo.ApplicationCommandOption{
-		Type:        discordgo.ApplicationCommandOptionSubCommand,
-		Name:        "profile-delete",
-		Description: "Delete a Foundry profile",
-		Options:     []*discordgo.ApplicationCommandOption{nameOption("Profile to delete")},
-	}
-}
-
-func (c *profileDeleteCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
-	return c.cmds.DeleteProfile(ctx, r, opts.String("name"))
-}
-
 // ProfileShowCmd returns a SubCommand for /foundry profile-show.
 func ProfileShowCmd(cmds *command.ProfileCommands) SubCommand { return &profileShowCmd{cmds: cmds} }
 
-// ProfileCreateCmd returns a SubCommand for /foundry profile-create.
-func ProfileCreateCmd(
-	cmds *command.ProfileCommands,
-) SubCommand {
-	return &profileCreateCmd{cmds: cmds}
-}
-
 // ProfileEditCmd returns a SubCommand for /foundry profile-edit.
 func ProfileEditCmd(cmds *command.ProfileCommands) SubCommand { return &profileEditCmd{cmds: cmds} }
-
-// ProfileDeleteCmd returns a SubCommand for /foundry profile-delete.
-func ProfileDeleteCmd(
-	cmds *command.ProfileCommands,
-) SubCommand {
-	return &profileDeleteCmd{cmds: cmds}
-}

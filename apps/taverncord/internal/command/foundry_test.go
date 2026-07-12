@@ -24,9 +24,7 @@ type stubClient struct {
 	versionsErr error
 	downloadErr error
 	profileErr  error
-	createErr   error
 	updateErr   error
-	deleteErr   error
 	logsErr     error
 	eventsErr   error
 	gotForce    bool
@@ -63,19 +61,9 @@ func (s *stubClient) GetProfile(_ context.Context, _ string) (ProfileInfo, error
 	return s.profileInfo, s.profileErr
 }
 
-func (s *stubClient) CreateProfile(_ context.Context, p ProfileInput) error {
-	s.lastInput = p
-	return s.createErr
-}
-
 func (s *stubClient) UpdateProfile(_ context.Context, name string, p ProfileInput) error {
 	s.lastName, s.lastInput = name, p
 	return s.updateErr
-}
-
-func (s *stubClient) DeleteProfile(_ context.Context, name string) error {
-	s.lastName = name
-	return s.deleteErr
 }
 
 func (s *stubClient) Logs(_ context.Context, tail int) (LogsData, error) {

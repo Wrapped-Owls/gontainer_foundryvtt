@@ -45,9 +45,7 @@ func main() {
 		Add(discordadapter.VersionsCmd(cmds)).
 		Add(discordadapter.DownloadCmd(cmds)).
 		Add(discordadapter.ProfileShowCmd(cmds)).
-		Add(discordadapter.ProfileCreateCmd(cmds)).
 		Add(discordadapter.ProfileEditCmd(cmds)).
-		Add(discordadapter.ProfileDeleteCmd(cmds)).
 		Add(discordadapter.LogsCmd(cmds))
 
 	adapter, err := discordadapter.New(cfg, router, logger)
