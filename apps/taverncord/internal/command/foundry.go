@@ -38,9 +38,25 @@ func (pc *ProfileCommands) List(ctx context.Context, r Responder) error {
 		if p.Name == listing.Active {
 			marker = "▶"
 		}
-		fmt.Fprintf(&sb, "%s **%s** (`%s`)\n", marker, label, p.Name)
+		fmt.Fprintf(&sb, "%s **%s** (`%s`)", marker, label, p.Name)
+		if detail := profileSummary(p.Version, p.World); detail != "" {
+			sb.WriteString("  -  " + detail)
+		}
+		sb.WriteByte('\n')
 	}
+	sb.WriteString("_Use `/foundry list name:<profile>` for full details._")
 	return r.Send(ctx, sb.String(), Private)
+}
+
+func profileSummary(version, world string) string {
+	var parts []string
+	if version != "" {
+		parts = append(parts, "v"+version)
+	}
+	if world != "" {
+		parts = append(parts, "world `"+world+"`")
+	}
+	return strings.Join(parts, " • ")
 }
 
 func (pc *ProfileCommands) Switch(

@@ -19,7 +19,7 @@ func registerProfileHandlers(
 		profiles := ps.ListProfiles()
 		refs := make([]profileRef, len(profiles))
 		for i, p := range profiles {
-			refs[i] = profileRef{Name: p.Name, Label: p.Label}
+			refs[i] = profileRef{Name: p.Name, Label: p.Label, Version: p.Version, World: p.World}
 		}
 		writeJSON(w, logger, http.StatusOK, profilesResponse{Active: sw.Active(), Profiles: refs})
 	})

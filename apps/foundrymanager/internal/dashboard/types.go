@@ -34,8 +34,10 @@ type ProfileStore interface {
 }
 
 type profileRef struct {
-	Name  string `json:"name"`
-	Label string `json:"label"`
+	Name    string `json:"name"`
+	Label   string `json:"label"`
+	Version string `json:"version"`
+	World   string `json:"world"`
 }
 
 type profilesResponse struct {

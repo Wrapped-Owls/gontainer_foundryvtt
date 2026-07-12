@@ -43,7 +43,6 @@ func main() {
 		Add(discordadapter.StatusCmd(cmds)).
 		Add(discordadapter.VersionsCmd(cmds)).
 		Add(discordadapter.DownloadCmd(cmds)).
-		Add(discordadapter.ProfileShowCmd(cmds)).
 		Add(discordadapter.ProfileEditCmd(cmds)).
 		Add(discordadapter.LogsCmd(cmds))
 
