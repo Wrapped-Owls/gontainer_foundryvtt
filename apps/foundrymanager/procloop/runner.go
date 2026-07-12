@@ -12,13 +12,18 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/controller"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/dashboard"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/foundrystatus"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/logstore"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 )
 
 const statusTimeout = 2 * time.Second
 
-var _ dashboard.Switcher = (*Runner)(nil)
+var (
+	_ dashboard.Switcher     = (*Runner)(nil)
+	_ dashboard.ProfileStore = (*Runner)(nil)
+	_ dashboard.LogReader    = (*Runner)(nil)
+)
 
 type Runner struct {
 	mu         sync.RWMutex
@@ -30,6 +35,7 @@ type Runner struct {
 	ctrl       *controller.SwitchController
 	status     *foundrystatus.Client
 	versions   dashboard.VersionManager
+	logs       *logstore.Store
 }
 
 type Params struct {
@@ -56,6 +62,11 @@ func New(params Params) *Runner {
 		logger:     params.Logger,
 		ctrl:       ctrl,
 		status:     foundrystatus.NewClient(&http.Client{Timeout: statusTimeout}),
+		logs: logstore.New(
+			logstore.DefaultBufferLines,
+			logstore.DefaultEventBuffer,
+			params.Config.LogAlertPatterns,
+		),
 	}
 }
 
@@ -63,7 +74,14 @@ func (r *Runner) Run(ctx context.Context) int {
 	dashCtx, cancelDash := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	wg.Go(func() {
-		errCh := dashboard.Start(dashCtx, r.logger, r.cfg.DashboardAddr, r, r.versions, r)
+		errCh := dashboard.Start(dashCtx, dashboard.Params{
+			Logger:   r.logger,
+			Addr:     r.cfg.DashboardAddr,
+			Switcher: r,
+			Versions: r.versions,
+			Profiles: r,
+			Logs:     r,
+		})
 		if err := <-errCh; err != nil {
 			r.logger.Error("dashboard server stopped unexpectedly", "err", err)
 		}
@@ -103,6 +121,10 @@ func (r *Runner) FoundryStatus(ctx context.Context) (foundrystatus.Status, error
 	defer cancel()
 	return r.status.Fetch(ctx, fmt.Sprintf("http://127.0.0.1:%d", port))
 }
+
+func (r *Runner) Logs(n int) []string { return r.logs.Tail(n) }
+
+func (r *Runner) Events(cursor int) ([]logstore.Event, int) { return r.logs.EventsSince(cursor) }
 
 func (r *Runner) currentProfiles() []profile.Profile {
 	r.mu.RLock()
