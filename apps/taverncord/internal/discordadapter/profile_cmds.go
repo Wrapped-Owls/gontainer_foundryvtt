@@ -77,26 +77,6 @@ func (c *profileShowCmd) Handle(ctx context.Context, opts OptionMap, r command.R
 	return c.cmds.ShowProfile(ctx, r, opts.String("name"))
 }
 
-type profileCreateCmd struct{ cmds *command.ProfileCommands }
-
-func (c *profileCreateCmd) Spec() *discordgo.ApplicationCommandOption {
-	const dataPathMandatory dataPathRequirement = "mandatory"
-
-	return &discordgo.ApplicationCommandOption{
-		Type:        discordgo.ApplicationCommandOptionSubCommand,
-		Name:        "profile-create",
-		Description: "Create a new Foundry profile",
-		Options: append(
-			[]*discordgo.ApplicationCommandOption{nameOption("New profile name")},
-			editableOptions(dataPathMandatory)...,
-		),
-	}
-}
-
-func (c *profileCreateCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
-	return c.cmds.CreateProfile(ctx, r, profileInput(opts, opts.String("name")))
-}
-
 type profileEditCmd struct{ cmds *command.ProfileCommands }
 
 func (c *profileEditCmd) Spec() *discordgo.ApplicationCommandOption {
@@ -118,33 +98,6 @@ func (c *profileEditCmd) Handle(ctx context.Context, opts OptionMap, r command.R
 	return c.cmds.EditProfile(ctx, r, name, profileInput(opts, name))
 }
 
-type profileDeleteCmd struct{ cmds *command.ProfileCommands }
-
-func (c *profileDeleteCmd) Spec() *discordgo.ApplicationCommandOption {
-	return &discordgo.ApplicationCommandOption{
-		Type:        discordgo.ApplicationCommandOptionSubCommand,
-		Name:        "profile-delete",
-		Description: "Delete a Foundry profile",
-		Options:     []*discordgo.ApplicationCommandOption{nameOption("Profile to delete")},
-	}
-}
-
-func (c *profileDeleteCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
-	return c.cmds.DeleteProfile(ctx, r, opts.String("name"))
-}
-
 func ProfileShowCmd(cmds *command.ProfileCommands) SubCommand { return &profileShowCmd{cmds: cmds} }
 
-func ProfileCreateCmd(
-	cmds *command.ProfileCommands,
-) SubCommand {
-	return &profileCreateCmd{cmds: cmds}
-}
-
 func ProfileEditCmd(cmds *command.ProfileCommands) SubCommand { return &profileEditCmd{cmds: cmds} }
-
-func ProfileDeleteCmd(
-	cmds *command.ProfileCommands,
-) SubCommand {
-	return &profileDeleteCmd{cmds: cmds}
-}

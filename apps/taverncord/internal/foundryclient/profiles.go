@@ -35,25 +35,6 @@ func (c *Client) GetProfile(ctx context.Context, name string) (command.ProfileIn
 	}, nil
 }
 
-func (c *Client) CreateProfile(ctx context.Context, p command.ProfileInput) error {
-	body := toBody(p)
-	_, err := jsonhttp.Request[struct{}, profileBody](
-		ctx,
-		c.cfg,
-		jsonhttp.RequestConfig[profileBody]{
-			Method: http.MethodPost,
-			Path:   profilesPath,
-			Body:   &body,
-			OnStatus: map[int]func(*http.Response) error{
-				http.StatusCreated:    func(_ *http.Response) error { return nil },
-				http.StatusBadRequest: decodeError,
-				http.StatusConflict:   decodeError,
-			},
-		},
-	)
-	return err
-}
-
 func (c *Client) UpdateProfile(ctx context.Context, name string, p command.ProfileInput) error {
 	body := toBody(p)
 	_, err := jsonhttp.Request[struct{}, profileBody](
@@ -70,19 +51,6 @@ func (c *Client) UpdateProfile(ctx context.Context, name string, p command.Profi
 			},
 		},
 	)
-	return err
-}
-
-func (c *Client) DeleteProfile(ctx context.Context, name string) error {
-	_, err := jsonhttp.Request[struct{}, struct{}](ctx, c.cfg, jsonhttp.RequestConfig[struct{}]{
-		Method: http.MethodDelete,
-		Path:   profilePath(name),
-		OnStatus: map[int]func(*http.Response) error{
-			http.StatusNoContent:  func(_ *http.Response) error { return nil },
-			http.StatusBadRequest: decodeError,
-			http.StatusNotFound:   decodeError,
-		},
-	})
 	return err
 }
 

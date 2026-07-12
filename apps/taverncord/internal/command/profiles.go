@@ -28,14 +28,6 @@ func (pc *ProfileCommands) ShowProfile(ctx context.Context, r Responder, name st
 	return r.Send(ctx, sb.String(), Private)
 }
 
-func (pc *ProfileCommands) CreateProfile(ctx context.Context, r Responder, p ProfileInput) error {
-	if err := pc.client.CreateProfile(ctx, p); err != nil {
-		pc.logger.Error("create profile failed", "profile", p.Name, "err", err)
-		return r.Send(ctx, fmt.Sprintf("❌ Create failed: %s", err.Error()), Private)
-	}
-	return r.Send(ctx, fmt.Sprintf("✅ Created profile **%s**.", p.Name), Private)
-}
-
 func (pc *ProfileCommands) EditProfile(
 	ctx context.Context,
 	r Responder,
@@ -47,14 +39,6 @@ func (pc *ProfileCommands) EditProfile(
 		return r.Send(ctx, fmt.Sprintf("❌ Edit failed: %s", err.Error()), Private)
 	}
 	return r.Send(ctx, fmt.Sprintf("✅ Updated profile **%s**.", name), Private)
-}
-
-func (pc *ProfileCommands) DeleteProfile(ctx context.Context, r Responder, name string) error {
-	if err := pc.client.DeleteProfile(ctx, name); err != nil {
-		pc.logger.Error("delete profile failed", "profile", name, "err", err)
-		return r.Send(ctx, fmt.Sprintf("❌ Delete failed: %s", err.Error()), Private)
-	}
-	return r.Send(ctx, fmt.Sprintf("✅ Deleted profile **%s**.", name), Private)
 }
 
 func writeField(sb *strings.Builder, label, value string) {

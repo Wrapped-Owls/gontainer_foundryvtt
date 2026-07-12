@@ -36,10 +36,6 @@ func (s *stubFoundryClient) GetProfile(_ context.Context, _ string) (command.Pro
 	return command.ProfileInfo{}, nil
 }
 
-func (s *stubFoundryClient) CreateProfile(_ context.Context, _ command.ProfileInput) error {
-	return nil
-}
-
 func (s *stubFoundryClient) UpdateProfile(
 	_ context.Context,
 	_ string,
@@ -47,7 +43,7 @@ func (s *stubFoundryClient) UpdateProfile(
 ) error {
 	return nil
 }
-func (s *stubFoundryClient) DeleteProfile(_ context.Context, _ string) error { return nil }
+
 func (s *stubFoundryClient) Logs(_ context.Context, _ int) (command.LogsData, error) {
 	return command.LogsData{}, nil
 }
