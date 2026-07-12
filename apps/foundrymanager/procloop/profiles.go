@@ -30,14 +30,24 @@ func (r *Runner) CreateProfile(p profile.Profile) error {
 
 func (r *Runner) UpdateProfile(name string, p profile.Profile) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 	idx := r.indexOf(name)
 	if idx < 0 {
+		r.mu.Unlock()
 		return fmt.Errorf("%w: %q", profile.ErrNotFound, name)
 	}
+	before := r.state.Profiles[idx]
 	updated := slices.Clone(r.state.Profiles)
 	applyOverrides(&updated[idx], p)
-	return r.persistProfiles(updated)
+	after := updated[idx]
+	err := r.persistProfiles(updated)
+	r.mu.Unlock()
+	if err != nil {
+		return err
+	}
+	if name == r.ctrl.Active() && (before.Version != after.Version || before.World != after.World) {
+		r.ctrl.RequestSwitch(name)
+	}
+	return nil
 }
 
 func (r *Runner) DeleteProfile(name string) error {
