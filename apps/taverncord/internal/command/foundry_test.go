@@ -40,39 +40,49 @@ type stubClient struct {
 func (s *stubClient) ListProfiles(_ context.Context) (ProfilesData, error) {
 	return s.profiles, s.listErr
 }
+
 func (s *stubClient) Switch(_ context.Context, _ string, force bool) error {
 	s.gotForce = force
 	return s.switchErr
 }
+
 func (s *stubClient) Status(_ context.Context) (StatusData, error) {
 	return s.status, s.statusErr
 }
+
 func (s *stubClient) Versions(_ context.Context) (VersionsData, error) {
 	return s.versions, s.versionsErr
 }
+
 func (s *stubClient) Download(_ context.Context, version, url string) error {
 	s.gotVersion, s.gotURL = version, url
 	return s.downloadErr
 }
+
 func (s *stubClient) GetProfile(_ context.Context, _ string) (ProfileInfo, error) {
 	return s.profileInfo, s.profileErr
 }
+
 func (s *stubClient) CreateProfile(_ context.Context, p ProfileInput) error {
 	s.lastInput = p
 	return s.createErr
 }
+
 func (s *stubClient) UpdateProfile(_ context.Context, name string, p ProfileInput) error {
 	s.lastName, s.lastInput = name, p
 	return s.updateErr
 }
+
 func (s *stubClient) DeleteProfile(_ context.Context, name string) error {
 	s.lastName = name
 	return s.deleteErr
 }
+
 func (s *stubClient) Logs(_ context.Context, tail int) (LogsData, error) {
 	s.gotTail = tail
 	return s.logs, s.logsErr
 }
+
 func (s *stubClient) Events(_ context.Context, _ int) (EventsData, error) {
 	return s.events, s.eventsErr
 }
@@ -135,7 +145,9 @@ func TestList_clientError(t *testing.T) {
 
 func TestSwitch_success_editsMessage(t *testing.T) {
 	resp := &stubResponder{}
-	if err := makeCommands(&stubClient{}).Switch(context.Background(), resp, "bob", false); err != nil {
+	if err := makeCommands(
+		&stubClient{},
+	).Switch(context.Background(), resp, "bob", false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if resp.ephemeral {
@@ -175,7 +187,9 @@ func TestSwitch_passesForce(t *testing.T) {
 }
 
 func TestVersions_listsInstalled(t *testing.T) {
-	client := &stubClient{versions: VersionsData{Active: "14.361.0", Installed: []string{"14.361.0", "13.351.0"}}}
+	client := &stubClient{
+		versions: VersionsData{Active: "14.361.0", Installed: []string{"14.361.0", "13.351.0"}},
+	}
 	resp := &stubResponder{}
 	if err := makeCommands(client).Versions(context.Background(), resp); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -198,7 +212,9 @@ func TestVersions_empty(t *testing.T) {
 func TestDownload_success(t *testing.T) {
 	client := &stubClient{}
 	resp := &stubResponder{}
-	if err := makeCommands(client).Download(context.Background(), resp, "14.361.0", "https://signed"); err != nil {
+	if err := makeCommands(
+		client,
+	).Download(context.Background(), resp, "14.361.0", "https://signed"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if client.gotVersion != "14.361.0" || client.gotURL != "https://signed" {
@@ -260,8 +276,15 @@ func TestStatus_offline(t *testing.T) {
 
 func TestStatus_online(t *testing.T) {
 	client := &stubClient{status: StatusData{
-		Active: "alice", Version: "13.351", Online: true, WorldActive: true,
-		World: "my-world", System: "projectfu", SystemVersion: "4.16.1", Users: 3, UptimeMS: 6230770,
+		Active:        "alice",
+		Version:       "13.351",
+		Online:        true,
+		WorldActive:   true,
+		World:         "my-world",
+		System:        "projectfu",
+		SystemVersion: "4.16.1",
+		Users:         3,
+		UptimeMS:      6230770,
 	}}
 	resp := &stubResponder{}
 	if err := makeCommands(client).Status(context.Background(), resp); err != nil {

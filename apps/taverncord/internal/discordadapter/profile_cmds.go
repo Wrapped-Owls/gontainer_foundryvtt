@@ -25,10 +25,26 @@ func editableOptions(dataPathRequired bool) []*discordgo.ApplicationCommandOptio
 			Description: "Foundry data directory for this profile",
 			Required:    dataPathRequired,
 		},
-		{Type: discordgo.ApplicationCommandOptionString, Name: "label", Description: "Display label"},
-		{Type: discordgo.ApplicationCommandOptionString, Name: "version", Description: "Foundry version"},
-		{Type: discordgo.ApplicationCommandOptionString, Name: "world", Description: "World to launch on start"},
-		{Type: discordgo.ApplicationCommandOptionString, Name: "manifest", Description: "Patch manifest path"},
+		{
+			Type:        discordgo.ApplicationCommandOptionString,
+			Name:        "label",
+			Description: "Display label",
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionString,
+			Name:        "version",
+			Description: "Foundry version",
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionString,
+			Name:        "world",
+			Description: "World to launch on start",
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionString,
+			Name:        "manifest",
+			Description: "Patch manifest path",
+		},
 	}
 }
 
@@ -118,10 +134,18 @@ func (c *profileDeleteCmd) Handle(ctx context.Context, opts OptionMap, r command
 func ProfileShowCmd(cmds *command.ProfileCommands) SubCommand { return &profileShowCmd{cmds: cmds} }
 
 // ProfileCreateCmd returns a SubCommand for /foundry profile-create.
-func ProfileCreateCmd(cmds *command.ProfileCommands) SubCommand { return &profileCreateCmd{cmds: cmds} }
+func ProfileCreateCmd(
+	cmds *command.ProfileCommands,
+) SubCommand {
+	return &profileCreateCmd{cmds: cmds}
+}
 
 // ProfileEditCmd returns a SubCommand for /foundry profile-edit.
 func ProfileEditCmd(cmds *command.ProfileCommands) SubCommand { return &profileEditCmd{cmds: cmds} }
 
 // ProfileDeleteCmd returns a SubCommand for /foundry profile-delete.
-func ProfileDeleteCmd(cmds *command.ProfileCommands) SubCommand { return &profileDeleteCmd{cmds: cmds} }
+func ProfileDeleteCmd(
+	cmds *command.ProfileCommands,
+) SubCommand {
+	return &profileDeleteCmd{cmds: cmds}
+}

@@ -39,7 +39,12 @@ func (pc *ProfileCommands) CreateProfile(ctx context.Context, r Responder, p Pro
 }
 
 // EditProfile updates the non-empty fields of an existing profile.
-func (pc *ProfileCommands) EditProfile(ctx context.Context, r Responder, name string, p ProfileInput) error {
+func (pc *ProfileCommands) EditProfile(
+	ctx context.Context,
+	r Responder,
+	name string,
+	p ProfileInput,
+) error {
 	if err := pc.client.UpdateProfile(ctx, name, p); err != nil {
 		pc.logger.Error("edit profile failed", "profile", name, "err", err)
 		return r.Send(ctx, fmt.Sprintf("❌ Edit failed: %s", err.Error()), true)

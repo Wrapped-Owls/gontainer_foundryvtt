@@ -85,7 +85,12 @@ func TestVersionCacheDir_rejectsTraversal(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			if _, ok := versionCacheDir("/cache", testCase.version); ok != testCase.wantOK {
-				t.Errorf("versionCacheDir(%q) ok=%v, want %v", testCase.version, ok, testCase.wantOK)
+				t.Errorf(
+					"versionCacheDir(%q) ok=%v, want %v",
+					testCase.version,
+					ok,
+					testCase.wantOK,
+				)
 			}
 		})
 	}

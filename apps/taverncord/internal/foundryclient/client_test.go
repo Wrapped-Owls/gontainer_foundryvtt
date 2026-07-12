@@ -17,7 +17,7 @@ func TestListProfiles(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		json.NewEncoder(w).Encode(profilesResp{ //nolint:errcheck
+		json.NewEncoder(w).Encode(profilesResp{
 			Active: "alice",
 			Profiles: []profile.Profile{
 				{Name: "alice", Label: "Alice"},
@@ -54,7 +54,7 @@ func TestSwitch_accepted(t *testing.T) {
 func TestSwitch_conflictOnlineUsers(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusConflict)
-		json.NewEncoder(w).Encode(errorResp{Error: "2 user(s) currently online"}) //nolint:errcheck
+		json.NewEncoder(w).Encode(errorResp{Error: "2 user(s) currently online"})
 	}))
 	defer srv.Close()
 
@@ -70,7 +70,7 @@ func TestSwitch_conflictOnlineUsers(t *testing.T) {
 func TestSwitch_badRequest(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(errorResp{Error: "unknown profile"}) //nolint:errcheck
+		json.NewEncoder(w).Encode(errorResp{Error: "unknown profile"})
 	}))
 	defer srv.Close()
 
@@ -86,7 +86,7 @@ func TestVersions(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		json.NewEncoder(w).Encode(versionsResp{ //nolint:errcheck
+		json.NewEncoder(w).Encode(versionsResp{
 			Active: "14.361.0", Installed: []string{"14.361.0", "13.351.0"},
 		})
 	}))
@@ -115,7 +115,7 @@ func TestDownload_accepted(t *testing.T) {
 func TestDownload_badGatewayRelaysError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
-		json.NewEncoder(w).Encode(errorResp{Error: "no source for 9.9.9"}) //nolint:errcheck
+		json.NewEncoder(w).Encode(errorResp{Error: "no source for 9.9.9"})
 	}))
 	defer srv.Close()
 
@@ -131,7 +131,7 @@ func TestLogs(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		json.NewEncoder(w).Encode(logsResp{Lines: []string{"a", "b"}}) //nolint:errcheck
+		json.NewEncoder(w).Encode(logsResp{Lines: []string{"a", "b"}})
 	}))
 	defer srv.Close()
 
@@ -150,7 +150,7 @@ func TestEvents(t *testing.T) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		json.NewEncoder(w).Encode(eventsResp{ //nolint:errcheck
+		json.NewEncoder(w).Encode(eventsResp{
 			Events: []eventItemResp{{Kind: "crash", Message: "boom"}},
 			Next:   6,
 		})
@@ -168,9 +168,16 @@ func TestEvents(t *testing.T) {
 
 func TestStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(statusResp{ //nolint:errcheck
-			Active: "alice", Version: "13.351", Online: true, WorldActive: true,
-			World: "my-world", System: "projectfu", SystemVersion: "4.16.1", Users: 2, UptimeMS: 6230770,
+		json.NewEncoder(w).Encode(statusResp{
+			Active:        "alice",
+			Version:       "13.351",
+			Online:        true,
+			WorldActive:   true,
+			World:         "my-world",
+			System:        "projectfu",
+			SystemVersion: "4.16.1",
+			Users:         2,
+			UptimeMS:      6230770,
 		})
 	}))
 	defer srv.Close()
@@ -182,7 +189,8 @@ func TestStatus(t *testing.T) {
 	if data.Active != "alice" || data.Version != "13.351" {
 		t.Errorf("unexpected data: %+v", data)
 	}
-	if !data.Online || data.World != "my-world" || data.Users != 2 || data.SystemVersion != "4.16.1" {
+	if !data.Online || data.World != "my-world" || data.Users != 2 ||
+		data.SystemVersion != "4.16.1" {
 		t.Errorf("expected live status fields, got %+v", data)
 	}
 }

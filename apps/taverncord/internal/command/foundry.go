@@ -61,8 +61,8 @@ func (pc *ProfileCommands) Switch(ctx context.Context, r Responder, name string,
 	return r.Edit(ctx, fmt.Sprintf("✅ Switched to **%s** — server is restarting.", name))
 }
 
-// discordMessageLimit is Discord's 2000-character message cap; we stay well
-// under it to leave room for the code-fence wrapper.
+// logsCharBudget stays well under Discord's 2000-character message cap to leave
+// room for the code-fence wrapper.
 const logsCharBudget = 1800
 
 // Logs fetches the most recent Foundry log lines and sends them in a code block.

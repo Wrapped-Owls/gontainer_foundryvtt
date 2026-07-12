@@ -24,6 +24,7 @@ func (s *stubFoundryClient) Switch(_ context.Context, _ string, _ bool) error { 
 func (s *stubFoundryClient) Status(_ context.Context) (command.StatusData, error) {
 	return s.status, nil
 }
+
 func (s *stubFoundryClient) Versions(_ context.Context) (command.VersionsData, error) {
 	return command.VersionsData{}, nil
 }
@@ -31,16 +32,23 @@ func (s *stubFoundryClient) Download(_ context.Context, _, _ string) error { ret
 func (s *stubFoundryClient) GetProfile(_ context.Context, _ string) (command.ProfileInfo, error) {
 	return command.ProfileInfo{}, nil
 }
+
 func (s *stubFoundryClient) CreateProfile(_ context.Context, _ command.ProfileInput) error {
 	return nil
 }
-func (s *stubFoundryClient) UpdateProfile(_ context.Context, _ string, _ command.ProfileInput) error {
+
+func (s *stubFoundryClient) UpdateProfile(
+	_ context.Context,
+	_ string,
+	_ command.ProfileInput,
+) error {
 	return nil
 }
 func (s *stubFoundryClient) DeleteProfile(_ context.Context, _ string) error { return nil }
 func (s *stubFoundryClient) Logs(_ context.Context, _ int) (command.LogsData, error) {
 	return command.LogsData{}, nil
 }
+
 func (s *stubFoundryClient) Events(_ context.Context, _ int) (command.EventsData, error) {
 	return command.EventsData{}, nil
 }

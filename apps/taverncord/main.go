@@ -70,11 +70,7 @@ func main() {
 	var wg sync.WaitGroup
 	if cfg.Foundry.AlertChannelID != "" {
 		poller := alerts.New(fc, adapter, cfg.Foundry.AlertChannelID, alertPollGap, logger)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			poller.Run(ctx)
-		}()
+		wg.Go(func() { poller.Run(ctx) })
 		logger.Info("crash alert poller enabled", "channel", cfg.Foundry.AlertChannelID)
 	}
 

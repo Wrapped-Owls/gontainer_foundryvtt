@@ -54,7 +54,9 @@ func TestCreateProfile_forwardsInput(t *testing.T) {
 func TestCreateProfile_failureRelaysError(t *testing.T) {
 	client := &stubClient{createErr: errors.New("profile: already exists")}
 	resp := &stubResponder{}
-	if err := makeCommands(client).CreateProfile(context.Background(), resp, ProfileInput{Name: "bob"}); err != nil {
+	if err := makeCommands(
+		client,
+	).CreateProfile(context.Background(), resp, ProfileInput{Name: "bob"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(resp.content, "already exists") {
@@ -65,7 +67,9 @@ func TestCreateProfile_failureRelaysError(t *testing.T) {
 func TestEditProfile_forwardsName(t *testing.T) {
 	client := &stubClient{}
 	resp := &stubResponder{}
-	if err := makeCommands(client).EditProfile(context.Background(), resp, "alice", ProfileInput{World: "w"}); err != nil {
+	if err := makeCommands(
+		client,
+	).EditProfile(context.Background(), resp, "alice", ProfileInput{World: "w"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if client.lastName != "alice" || client.lastInput.World != "w" {

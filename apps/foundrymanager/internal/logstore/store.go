@@ -103,10 +103,7 @@ func (s *Store) EventsSince(cursor int) ([]Event, int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	next := s.dropped + len(s.events)
-	start := max(cursor-s.dropped, 0)
-	if start > len(s.events) {
-		start = len(s.events)
-	}
+	start := min(max(cursor-s.dropped, 0), len(s.events))
 	out := make([]Event, len(s.events)-start)
 	copy(out, s.events[start:])
 	return out, next

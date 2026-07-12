@@ -16,6 +16,11 @@ type Client struct {
 	cfg jsonhttp.ClientConfig
 }
 
+var _ command.FoundryClient = (*Client)(nil)
+
+// profilesPath is the dashboard profiles collection endpoint.
+const profilesPath = "/profiles"
+
 // New creates a Client targeting the given base URL (e.g. "http://foundryvtt:30002").
 func New(baseURL string) *Client {
 	return &Client{cfg: jsonhttp.ClientConfig{
@@ -31,7 +36,7 @@ func (c *Client) ListProfiles(ctx context.Context) (command.ProfilesData, error)
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,
-			Path:   "/profiles",
+			Path:   profilesPath,
 		},
 	)
 	if err != nil {
@@ -87,16 +92,20 @@ func (c *Client) Versions(ctx context.Context) (command.VersionsData, error) {
 // the dashboard error message verbatim when the download cannot be satisfied.
 func (c *Client) Download(ctx context.Context, version, url string) error {
 	body := downloadBody{Version: version, URL: url}
-	_, err := jsonhttp.Request[struct{}, downloadBody](ctx, c.cfg, jsonhttp.RequestConfig[downloadBody]{
-		Method: http.MethodPost,
-		Path:   "/versions/download",
-		Body:   &body,
-		OnStatus: map[int]func(*http.Response) error{
-			http.StatusBadRequest: decodeError,
-			http.StatusBadGateway: decodeError,
-			http.StatusAccepted:   func(_ *http.Response) error { return nil },
+	_, err := jsonhttp.Request[struct{}, downloadBody](
+		ctx,
+		c.cfg,
+		jsonhttp.RequestConfig[downloadBody]{
+			Method: http.MethodPost,
+			Path:   "/versions/download",
+			Body:   &body,
+			OnStatus: map[int]func(*http.Response) error{
+				http.StatusBadRequest: decodeError,
+				http.StatusBadGateway: decodeError,
+				http.StatusAccepted:   func(_ *http.Response) error { return nil },
+			},
 		},
-	})
+	)
 	return err
 }
 

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 )
 
 type profileFile struct {
@@ -44,7 +45,7 @@ func WriteProfiles(path string, profiles []profile.Profile) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(out, '\n'), 0o600) //nolint:gosec
+	return os.WriteFile(path, append(out, '\n'), fsperm.Secret)
 }
 
 // WriteActive persists the active profile name into the JSON file at path,

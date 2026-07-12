@@ -20,7 +20,11 @@ import (
 // statusTimeout bounds the live status probe against the local Foundry server.
 const statusTimeout = 2 * time.Second
 
-var _ dashboard.Switcher = (*Runner)(nil)
+var (
+	_ dashboard.Switcher     = (*Runner)(nil)
+	_ dashboard.ProfileStore = (*Runner)(nil)
+	_ dashboard.LogReader    = (*Runner)(nil)
+)
 
 // Runner runs the Foundry process, handles backoff restarts, and applies
 // profile switches requested via the dashboard.
@@ -62,7 +66,11 @@ func New(
 		logger:     logger,
 		ctrl:       ctrl,
 		status:     foundrystatus.NewClient(&http.Client{Timeout: statusTimeout}),
-		logs:       logstore.New(logstore.DefaultBufferLines, logstore.DefaultEventBuffer, cfg.LogAlertPatterns),
+		logs: logstore.New(
+			logstore.DefaultBufferLines,
+			logstore.DefaultEventBuffer,
+			cfg.LogAlertPatterns,
+		),
 	}
 }
 

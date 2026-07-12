@@ -39,32 +39,40 @@ func (c *Client) GetProfile(ctx context.Context, name string) (command.ProfileIn
 // CreateProfile calls POST /profiles to create a new profile.
 func (c *Client) CreateProfile(ctx context.Context, p command.ProfileInput) error {
 	body := toBody(p)
-	_, err := jsonhttp.Request[struct{}, profileBody](ctx, c.cfg, jsonhttp.RequestConfig[profileBody]{
-		Method: http.MethodPost,
-		Path:   "/profiles",
-		Body:   &body,
-		OnStatus: map[int]func(*http.Response) error{
-			http.StatusCreated:    func(_ *http.Response) error { return nil },
-			http.StatusBadRequest: decodeError,
-			http.StatusConflict:   decodeError,
+	_, err := jsonhttp.Request[struct{}, profileBody](
+		ctx,
+		c.cfg,
+		jsonhttp.RequestConfig[profileBody]{
+			Method: http.MethodPost,
+			Path:   profilesPath,
+			Body:   &body,
+			OnStatus: map[int]func(*http.Response) error{
+				http.StatusCreated:    func(_ *http.Response) error { return nil },
+				http.StatusBadRequest: decodeError,
+				http.StatusConflict:   decodeError,
+			},
 		},
-	})
+	)
 	return err
 }
 
 // UpdateProfile calls PUT /profiles/{name} to merge non-empty fields.
 func (c *Client) UpdateProfile(ctx context.Context, name string, p command.ProfileInput) error {
 	body := toBody(p)
-	_, err := jsonhttp.Request[struct{}, profileBody](ctx, c.cfg, jsonhttp.RequestConfig[profileBody]{
-		Method: http.MethodPut,
-		Path:   profilePath(name),
-		Body:   &body,
-		OnStatus: map[int]func(*http.Response) error{
-			http.StatusOK:         func(_ *http.Response) error { return nil },
-			http.StatusBadRequest: decodeError,
-			http.StatusNotFound:   decodeError,
+	_, err := jsonhttp.Request[struct{}, profileBody](
+		ctx,
+		c.cfg,
+		jsonhttp.RequestConfig[profileBody]{
+			Method: http.MethodPut,
+			Path:   profilePath(name),
+			Body:   &body,
+			OnStatus: map[int]func(*http.Response) error{
+				http.StatusOK:         func(_ *http.Response) error { return nil },
+				http.StatusBadRequest: decodeError,
+				http.StatusNotFound:   decodeError,
+			},
 		},
-	})
+	)
 	return err
 }
 
@@ -83,7 +91,7 @@ func (c *Client) DeleteProfile(ctx context.Context, name string) error {
 }
 
 func profilePath(name string) string {
-	return "/profiles/" + url.PathEscape(name)
+	return profilesPath + "/" + url.PathEscape(name)
 }
 
 func toBody(p command.ProfileInput) profileBody {

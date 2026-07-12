@@ -70,15 +70,32 @@ type stubProfiles struct {
 
 func (s *stubProfiles) ListProfiles() []profile.Profile           { return s.profiles }
 func (s *stubProfiles) GetProfile(string) (profile.Profile, bool) { return s.getProfile, s.getOK }
-func (s *stubProfiles) CreateProfile(p profile.Profile) error     { s.lastCreate = p; return s.createErr }
-func (s *stubProfiles) DeleteProfile(name string) error           { s.lastDelete = name; return s.deleteErr }
+
+func (s *stubProfiles) CreateProfile(
+	p profile.Profile,
+) error {
+	s.lastCreate = p
+	return s.createErr
+}
+
+func (s *stubProfiles) DeleteProfile(
+	name string,
+) error {
+	s.lastDelete = name
+	return s.deleteErr
+}
 
 func (s *stubProfiles) UpdateProfile(name string, _ profile.Profile) error {
 	s.lastUpdateName = name
 	return s.updateErr
 }
 
-func serveHandlers(t *testing.T, sw *stubSwitcher, vm *stubVersions, ps *stubProfiles) *httptest.Server {
+func serveHandlers(
+	t *testing.T,
+	sw *stubSwitcher,
+	vm *stubVersions,
+	ps *stubProfiles,
+) *httptest.Server {
 	t.Helper()
 	if vm == nil {
 		vm = &stubVersions{}
@@ -181,7 +198,8 @@ func TestPostDownload_accepted(t *testing.T) {
 	vm := &stubVersions{}
 	srv := serveHandlers(t, &stubSwitcher{}, vm, nil)
 	b, _ := json.Marshal(downloadBody{Version: "14.361.0", URL: "https://signed"})
-	resp, err := srv.Client().Post(srv.URL+"/versions/download", "application/json", bytes.NewReader(b))
+	resp, err := srv.Client().
+		Post(srv.URL+"/versions/download", "application/json", bytes.NewReader(b))
 	if err != nil {
 		t.Fatalf("post download: %v", err)
 	}
@@ -197,7 +215,8 @@ func TestPostDownload_accepted(t *testing.T) {
 func TestPostDownload_missingVersion(t *testing.T) {
 	srv := serveHandlers(t, &stubSwitcher{}, &stubVersions{}, nil)
 	b, _ := json.Marshal(downloadBody{})
-	resp, err := srv.Client().Post(srv.URL+"/versions/download", "application/json", bytes.NewReader(b))
+	resp, err := srv.Client().
+		Post(srv.URL+"/versions/download", "application/json", bytes.NewReader(b))
 	if err != nil {
 		t.Fatalf("post download: %v", err)
 	}
@@ -211,7 +230,8 @@ func TestPostDownload_failureRelaysError(t *testing.T) {
 	vm := &stubVersions{downloadErr: errors.New("no source for 9.9.9")}
 	srv := serveHandlers(t, &stubSwitcher{}, vm, nil)
 	b, _ := json.Marshal(downloadBody{Version: "9.9.9"})
-	resp, err := srv.Client().Post(srv.URL+"/versions/download", "application/json", bytes.NewReader(b))
+	resp, err := srv.Client().
+		Post(srv.URL+"/versions/download", "application/json", bytes.NewReader(b))
 	if err != nil {
 		t.Fatalf("post download: %v", err)
 	}

@@ -9,7 +9,20 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
-func registerProfileHandlers(mux *http.ServeMux, ps ProfileStore, logger *slog.Logger) {
+func registerProfileHandlers(
+	mux *http.ServeMux,
+	sw Switcher,
+	ps ProfileStore,
+	logger *slog.Logger,
+) {
+	mux.HandleFunc("GET /profiles", func(w http.ResponseWriter, _ *http.Request) {
+		profiles := ps.ListProfiles()
+		refs := make([]profileRef, len(profiles))
+		for i, p := range profiles {
+			refs[i] = profileRef{Name: p.Name, Label: p.Label}
+		}
+		writeJSON(w, logger, http.StatusOK, profilesResponse{Active: sw.Active(), Profiles: refs})
+	})
 	mux.HandleFunc("GET /profiles/{name}", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := ps.GetProfile(r.PathValue("name"))
 		if !ok {
@@ -52,10 +65,14 @@ func registerProfileHandlers(mux *http.ServeMux, ps ProfileStore, logger *slog.L
 }
 
 // decodeProfile parses a profile request body, writing a 400 on failure.
-func decodeProfile(w http.ResponseWriter, r *http.Request, logger *slog.Logger) (profile.Profile, bool) {
+func decodeProfile(
+	w http.ResponseWriter,
+	r *http.Request,
+	logger *slog.Logger,
+) (profile.Profile, bool) {
 	var p profile.Profile
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		writeJSON(w, logger, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+		writeJSON(w, logger, http.StatusBadRequest, errorResponse{Error: msgInvalidBody})
 		return profile.Profile{}, false
 	}
 	return p, true

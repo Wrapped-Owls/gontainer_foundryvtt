@@ -42,7 +42,7 @@ func SyncLicense(dataPath, targetVersion, cacheDir string) error {
 // harvestLicense copies the data path's current license into cache/<version>.
 func harvestLicense(dataPath, cacheDir string) error {
 	src := filepath.Join(ConfigDir(dataPath), licenseName)
-	data, err := os.ReadFile(src)
+	data, err := os.ReadFile(src) //nolint:gosec // path derived from operator config
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
@@ -60,14 +60,7 @@ func harvestLicense(dataPath, cacheDir string) error {
 	if err = os.MkdirAll(dir, fsperm.Dir); err != nil {
 		return fmt.Errorf("mkdir %s: %w", dir, err)
 	}
-	dest := filepath.Join(dir, licenseName)
-	if existing, readErr := os.ReadFile(dest); readErr == nil && bytes.Equal(existing, data) {
-		return nil
-	}
-	if err = os.WriteFile(dest, data, fsperm.Secret); err != nil {
-		return fmt.Errorf("write license cache %s: %w", dest, err)
-	}
-	return nil
+	return writeFileIfChanged(filepath.Join(dir, licenseName), data)
 }
 
 // seedLicense restores cache/<targetVersion> into the data path when present.
@@ -77,7 +70,7 @@ func seedLicense(dataPath, targetVersion, cacheDir string) error {
 		return nil
 	}
 	src := filepath.Join(dir, licenseName)
-	data, err := os.ReadFile(src)
+	data, err := os.ReadFile(src) //nolint:gosec // cache dir traversal-guarded
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
@@ -88,12 +81,18 @@ func seedLicense(dataPath, targetVersion, cacheDir string) error {
 	if err = os.MkdirAll(confDir, fsperm.Dir); err != nil {
 		return fmt.Errorf("mkdir %s: %w", confDir, err)
 	}
-	dest := filepath.Join(confDir, licenseName)
-	if existing, readErr := os.ReadFile(dest); readErr == nil && bytes.Equal(existing, data) {
+	return writeFileIfChanged(filepath.Join(confDir, licenseName), data)
+}
+
+// writeFileIfChanged writes data to dest unless dest already holds it. dest is
+// derived from operator config and traversal-guarded by versionCacheDir.
+func writeFileIfChanged(dest string, data []byte) error {
+	existing, err := os.ReadFile(dest) //nolint:gosec // guarded path
+	if err == nil && bytes.Equal(existing, data) {
 		return nil
 	}
-	if err = os.WriteFile(dest, data, fsperm.Secret); err != nil {
-		return fmt.Errorf("write license %s: %w", dest, err)
+	if err = os.WriteFile(dest, data, fsperm.Secret); err != nil { //nolint:gosec // guarded path
+		return fmt.Errorf("write %s: %w", dest, err)
 	}
 	return nil
 }

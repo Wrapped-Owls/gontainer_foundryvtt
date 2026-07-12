@@ -17,12 +17,6 @@ type fakeSource struct {
 	err  error
 }
 
-func (f *fakeSource) set(d command.EventsData) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.data = d
-}
-
 func (f *fakeSource) Events(_ context.Context, since int) (command.EventsData, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -33,6 +27,12 @@ func (f *fakeSource) Events(_ context.Context, since int) (command.EventsData, e
 		return command.EventsData{Next: f.data.Next}, nil
 	}
 	return f.data, nil
+}
+
+func (f *fakeSource) set(d command.EventsData) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.data = d
 }
 
 type fakeSender struct {

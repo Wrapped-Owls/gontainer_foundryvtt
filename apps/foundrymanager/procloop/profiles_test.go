@@ -41,7 +41,12 @@ func TestCreateProfile_validation(t *testing.T) {
 	if err := r.CreateProfile(profile.Profile{Name: "bob"}); !errors.Is(err, profile.ErrInvalid) {
 		t.Errorf("expected ErrInvalid, got %v", err)
 	}
-	if err := r.CreateProfile(profile.Profile{Name: "alice", DataPath: "/x"}); !errors.Is(err, profile.ErrExists) {
+	if err := r.CreateProfile(
+		profile.Profile{Name: "alice", DataPath: "/x"},
+	); !errors.Is(
+		err,
+		profile.ErrExists,
+	) {
 		t.Errorf("expected ErrExists, got %v", err)
 	}
 }
@@ -59,7 +64,13 @@ func TestUpdateProfile_mergesNonEmpty(t *testing.T) {
 
 func TestUpdateProfile_notFound(t *testing.T) {
 	r := makeStore(t, "", nil)
-	if err := r.UpdateProfile("ghost", profile.Profile{World: "w"}); !errors.Is(err, profile.ErrNotFound) {
+	if err := r.UpdateProfile(
+		"ghost",
+		profile.Profile{World: "w"},
+	); !errors.Is(
+		err,
+		profile.ErrNotFound,
+	) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }

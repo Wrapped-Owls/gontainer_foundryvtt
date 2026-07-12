@@ -25,7 +25,7 @@ func LoadFromEnv(c *Config) error {
 // parsePatterns splits a comma-separated list into trimmed, non-empty patterns.
 func parsePatterns(v string) ([]string, error) {
 	var out []string
-	for _, p := range strings.Split(v, ",") {
+	for p := range strings.SplitSeq(v, ",") {
 		if p = strings.TrimSpace(p); p != "" {
 			out = append(out, p)
 		}
