@@ -15,6 +15,7 @@ type State struct {
 	JSRuntime   jsruntime.Runtime
 	Port        int
 	Version     string
+	World       string
 	Profiles    []profile.Profile
 }
 

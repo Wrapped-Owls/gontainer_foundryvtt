@@ -52,6 +52,7 @@ func toProcloopState(s activate.State) procloop.State {
 		JSRuntime:   s.JSRuntime,
 		Port:        s.Runtime.Port,
 		Version:     s.Install.Version.String(),
+		World:       s.Runtime.World,
 		Profiles:    s.Profiles,
 	}
 }
