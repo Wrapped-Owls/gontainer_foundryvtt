@@ -59,6 +59,40 @@ func decodeError(r *http.Response) error {
 	return fmt.Errorf("request rejected with status %d", r.StatusCode)
 }
 
+func (c *Client) Versions(ctx context.Context) (command.VersionsData, error) {
+	resp, err := jsonhttp.Request[versionsResp, struct{}](
+		ctx,
+		c.cfg,
+		jsonhttp.RequestConfig[struct{}]{
+			Method: http.MethodGet,
+			Path:   "/versions",
+		},
+	)
+	if err != nil {
+		return command.VersionsData{}, err
+	}
+	return command.VersionsData{Active: resp.Active, Installed: resp.Installed}, nil
+}
+
+func (c *Client) Download(ctx context.Context, version, url string) error {
+	body := downloadBody{Version: version, URL: url}
+	_, err := jsonhttp.Request[struct{}, downloadBody](
+		ctx,
+		c.cfg,
+		jsonhttp.RequestConfig[downloadBody]{
+			Method: http.MethodPost,
+			Path:   "/versions/download",
+			Body:   &body,
+			OnStatus: map[int]func(*http.Response) error{
+				http.StatusBadRequest: decodeError,
+				http.StatusBadGateway: decodeError,
+				http.StatusAccepted:   func(_ *http.Response) error { return nil },
+			},
+		},
+	)
+	return err
+}
+
 func (c *Client) Status(ctx context.Context) (command.StatusData, error) {
 	resp, err := jsonhttp.Request[statusResp, struct{}](
 		ctx,

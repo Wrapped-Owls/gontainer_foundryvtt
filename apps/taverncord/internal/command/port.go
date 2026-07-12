@@ -29,11 +29,18 @@ type FoundryClient interface {
 	ListProfiles(ctx context.Context) (ProfilesData, error)
 	Switch(ctx context.Context, name string, interrupt Interrupt) error
 	Status(ctx context.Context) (StatusData, error)
+	Versions(ctx context.Context) (VersionsData, error)
+	Download(ctx context.Context, version, url string) error
 }
 
 type ProfilesData struct {
 	Active   string
 	Profiles []profile.Profile
+}
+
+type VersionsData struct {
+	Active    string
+	Installed []string
 }
 
 type StatusData struct {

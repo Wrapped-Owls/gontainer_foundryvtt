@@ -63,6 +63,43 @@ func (pc *ProfileCommands) Switch(
 	return r.Edit(ctx, fmt.Sprintf("✅ Switched to **%s**  -  server is restarting.", name))
 }
 
+func (pc *ProfileCommands) Versions(ctx context.Context, r Responder) error {
+	versions, err := pc.client.Versions(ctx)
+	if err != nil {
+		pc.logger.Error("list versions failed", "err", err)
+		return r.Send(ctx, "Failed to fetch versions from Foundry.", Private)
+	}
+	if len(versions.Installed) == 0 {
+		return r.Send(ctx, "No Foundry versions installed.", Private)
+	}
+
+	var sb strings.Builder
+	sb.WriteString("**Installed Foundry versions**\n")
+	for _, v := range versions.Installed {
+		marker := "○"
+		if v == versions.Active {
+			marker = "▶"
+		}
+		fmt.Fprintf(&sb, "%s `%s`\n", marker, v)
+	}
+	return r.Send(ctx, sb.String(), Private)
+}
+
+func (pc *ProfileCommands) Download(ctx context.Context, r Responder, version, url string) error {
+	if err := r.Send(
+		ctx,
+		fmt.Sprintf("⏳ Downloading Foundry **%s**...", version),
+		Private,
+	); err != nil {
+		return err
+	}
+	if err := pc.client.Download(ctx, version, url); err != nil {
+		pc.logger.Error("download version failed", "version", version, "err", err)
+		return r.Edit(ctx, fmt.Sprintf("❌ Download failed: %s", err.Error()))
+	}
+	return r.Edit(ctx, fmt.Sprintf("✅ Foundry **%s** is ready to use.", version))
+}
+
 func (pc *ProfileCommands) Status(ctx context.Context, r Responder) error {
 	status, err := pc.client.Status(ctx)
 	if err != nil {

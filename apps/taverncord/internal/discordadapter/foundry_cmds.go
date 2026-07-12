@@ -62,11 +62,56 @@ func (c *statusCmd) Handle(ctx context.Context, _ OptionMap, r command.Responder
 	return c.cmds.Status(ctx, r)
 }
 
+type versionsCmd struct{ cmds *command.ProfileCommands }
+
+func (c *versionsCmd) Spec() *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionSubCommand,
+		Name:        "versions",
+		Description: "List installed Foundry VTT versions",
+	}
+}
+
+func (c *versionsCmd) Handle(ctx context.Context, _ OptionMap, r command.Responder) error {
+	return c.cmds.Versions(ctx, r)
+}
+
+type downloadCmd struct{ cmds *command.ProfileCommands }
+
+func (c *downloadCmd) Spec() *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionSubCommand,
+		Name:        "download",
+		Description: "Download a Foundry VTT version",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        "version",
+				Description: "Version to download (e.g. 14.361.0)",
+				Required:    true,
+			},
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        "url",
+				Description: "Optional presigned download URL",
+			},
+		},
+	}
+}
+
+func (c *downloadCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
+	return c.cmds.Download(ctx, r, opts.String("version"), opts.String("url"))
+}
+
 func ListCmd(cmds *command.ProfileCommands) SubCommand { return &listCmd{cmds: cmds} }
 
 func SwitchCmd(cmds *command.ProfileCommands) SubCommand { return &switchCmd{cmds: cmds} }
 
 func StatusCmd(cmds *command.ProfileCommands) SubCommand { return &statusCmd{cmds: cmds} }
+
+func VersionsCmd(cmds *command.ProfileCommands) SubCommand { return &versionsCmd{cmds: cmds} }
+
+func DownloadCmd(cmds *command.ProfileCommands) SubCommand { return &downloadCmd{cmds: cmds} }
 
 func interruptOf(opts OptionMap) command.Interrupt {
 	if opts.Bool("force") {

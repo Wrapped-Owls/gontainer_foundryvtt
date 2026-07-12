@@ -13,10 +13,15 @@ import (
 type stubClient struct {
 	profiles     ProfilesData
 	status       StatusData
+	versions     VersionsData
 	switchErr    error
 	listErr      error
 	statusErr    error
+	versionsErr  error
+	downloadErr  error
 	gotInterrupt Interrupt
+	gotVersion   string
+	gotURL       string
 }
 
 func (s *stubClient) ListProfiles(_ context.Context) (ProfilesData, error) {
@@ -30,6 +35,15 @@ func (s *stubClient) Switch(_ context.Context, _ string, interrupt Interrupt) er
 
 func (s *stubClient) Status(_ context.Context) (StatusData, error) {
 	return s.status, s.statusErr
+}
+
+func (s *stubClient) Versions(_ context.Context) (VersionsData, error) {
+	return s.versions, s.versionsErr
+}
+
+func (s *stubClient) Download(_ context.Context, version, url string) error {
+	s.gotVersion, s.gotURL = version, url
+	return s.downloadErr
 }
 
 type stubResponder struct {
@@ -131,6 +145,56 @@ func TestSwitch_passesInterrupt(t *testing.T) {
 	}
 	if client.gotInterrupt != InterruptAlways {
 		t.Errorf("interrupt forwarded as %q, want %q", client.gotInterrupt, InterruptAlways)
+	}
+}
+
+func TestVersions_listsInstalled(t *testing.T) {
+	client := &stubClient{
+		versions: VersionsData{Active: "14.361.0", Installed: []string{"14.361.0", "13.351.0"}},
+	}
+	resp := &stubResponder{}
+	if err := makeCommands(client).Versions(context.Background(), resp); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(resp.content, "14.361.0") || !strings.Contains(resp.content, "▶") {
+		t.Errorf("expected active version marked, got %q", resp.content)
+	}
+}
+
+func TestVersions_empty(t *testing.T) {
+	resp := &stubResponder{}
+	if err := makeCommands(&stubClient{}).Versions(context.Background(), resp); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(resp.content, "No Foundry versions") {
+		t.Errorf("expected empty message, got %q", resp.content)
+	}
+}
+
+func TestDownload_success(t *testing.T) {
+	client := &stubClient{}
+	resp := &stubResponder{}
+	if err := makeCommands(
+		client,
+	).Download(context.Background(), resp, "14.361.0", "https://signed"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.gotVersion != "14.361.0" || client.gotURL != "https://signed" {
+		t.Errorf("download args not forwarded: %q %q", client.gotVersion, client.gotURL)
+	}
+	if !strings.Contains(resp.edited, "✅") {
+		t.Errorf("expected success marker, got %q", resp.edited)
+	}
+}
+
+func TestDownload_failureRelaysError(t *testing.T) {
+	client := &stubClient{downloadErr: errors.New("no source for 9.9.9")}
+	resp := &stubResponder{}
+	if err := makeCommands(client).Download(context.Background(), resp, "9.9.9", ""); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(resp.edited, "❌") || !strings.Contains(resp.edited, "no source") {
+		t.Errorf("expected relayed error, got %q", resp.edited)
 	}
 }
 

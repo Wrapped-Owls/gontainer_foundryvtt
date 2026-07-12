@@ -24,6 +24,16 @@ type switchBody struct {
 	Force   bool   `json:"force"`
 }
 
+type versionsResp struct {
+	Active    string   `json:"active"`
+	Installed []string `json:"installed"`
+}
+
+type downloadBody struct {
+	Version string `json:"version"`
+	URL     string `json:"url"`
+}
+
 type errorResp struct {
 	Error string `json:"error"`
 }
