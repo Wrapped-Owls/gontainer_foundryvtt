@@ -16,15 +16,11 @@ func nameOption(desc string) *discordgo.ApplicationCommandOption {
 	}
 }
 
-// editableOptions are the optional non-secret profile fields shared by create/edit.
-func editableOptions(dataPathRequired bool) []*discordgo.ApplicationCommandOption {
+// editableOptions are the profile fields editable from Discord. The data
+// location, manifest path and admin secrets are intentionally absent so an edit
+// cannot repoint a profile at another disk or set credentials from a channel.
+func editableOptions() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
-		{
-			Type:        discordgo.ApplicationCommandOptionString,
-			Name:        "datapath",
-			Description: "Foundry data directory for this profile",
-			Required:    dataPathRequired,
-		},
 		{
 			Type:        discordgo.ApplicationCommandOptionString,
 			Name:        "label",
@@ -40,22 +36,15 @@ func editableOptions(dataPathRequired bool) []*discordgo.ApplicationCommandOptio
 			Name:        "world",
 			Description: "World to launch on start",
 		},
-		{
-			Type:        discordgo.ApplicationCommandOptionString,
-			Name:        "manifest",
-			Description: "Patch manifest path",
-		},
 	}
 }
 
 func profileInput(opts OptionMap, name string) command.ProfileInput {
 	return command.ProfileInput{
-		Name:         name,
-		Label:        opts.String("label"),
-		DataPath:     opts.String("datapath"),
-		Version:      opts.String("version"),
-		World:        opts.String("world"),
-		ManifestPath: opts.String("manifest"),
+		Name:    name,
+		Label:   opts.String("label"),
+		Version: opts.String("version"),
+		World:   opts.String("world"),
 	}
 }
 
@@ -85,7 +74,7 @@ func (c *profileEditCmd) Spec() *discordgo.ApplicationCommandOption {
 		Description: "Edit an existing Foundry profile",
 		Options: append(
 			[]*discordgo.ApplicationCommandOption{nameOption("Profile to edit")},
-			editableOptions(false)...,
+			editableOptions()...,
 		),
 	}
 }

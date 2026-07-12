@@ -83,20 +83,18 @@ func (r *Runner) indexOf(name string) int {
 	return -1
 }
 
-// applyOverrides copies the non-empty fields of src onto dst, leaving the name
-// and any omitted fields (including secrets) untouched.
+// applyOverrides copies the editable non-empty fields of src onto dst. Only the
+// label, version and world are editable; the data location, manifest path and
+// admin secrets are deliberately immutable here so an edit cannot repoint a
+// profile at another disk or change credentials — those come from file/env only.
 func applyOverrides(dst *profile.Profile, src profile.Profile) {
 	for _, f := range []struct {
 		dst *string
 		src string
 	}{
 		{&dst.Label, src.Label},
-		{&dst.DataPath, src.DataPath},
-		{&dst.AdminKey, src.AdminKey},
-		{&dst.AdminPasswordSalt, src.AdminPasswordSalt},
 		{&dst.Version, src.Version},
 		{&dst.World, src.World},
-		{&dst.ManifestPath, src.ManifestPath},
 	} {
 		if f.src != "" {
 			*f.dst = f.src

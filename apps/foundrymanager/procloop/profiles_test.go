@@ -51,14 +51,29 @@ func TestCreateProfile_validation(t *testing.T) {
 	}
 }
 
-func TestUpdateProfile_mergesNonEmpty(t *testing.T) {
+func TestUpdateProfile_appliesOnlyEditableFields(t *testing.T) {
 	r := makeStore(t, "", []profile.Profile{{Name: "alice", DataPath: "/d", AdminKey: "keep"}})
-	if err := r.UpdateProfile("alice", profile.Profile{World: "w", DataPath: ""}); err != nil {
+	// A crafted update carries editable and immutable fields; only label, version
+	// and world may take effect — data location, manifest and secrets must not.
+	err := r.UpdateProfile("alice", profile.Profile{
+		Label:             "Alice",
+		Version:           "14.0.0",
+		World:             "w",
+		DataPath:          "/evil",
+		ManifestPath:      "/evil/manifest",
+		AdminKey:          "hijack",
+		AdminPasswordSalt: "hijack",
+	})
+	if err != nil {
 		t.Fatalf("update: %v", err)
 	}
 	got, _ := r.GetProfile("alice")
-	if got.World != "w" || got.DataPath != "/d" || got.AdminKey != "keep" {
-		t.Errorf("merge wrong: %+v", got)
+	if got.Label != "Alice" || got.Version != "14.0.0" || got.World != "w" {
+		t.Errorf("editable fields not applied: %+v", got)
+	}
+	if got.DataPath != "/d" || got.ManifestPath != "" ||
+		got.AdminKey != "keep" || got.AdminPasswordSalt != "" {
+		t.Errorf("immutable fields changed: %+v", got)
 	}
 }
 

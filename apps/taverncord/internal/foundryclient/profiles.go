@@ -62,11 +62,9 @@ func profilePath(name string) string {
 
 func toBody(p command.ProfileInput) profileBody {
 	return profileBody{
-		Name:         p.Name,
-		Label:        p.Label,
-		DataPath:     p.DataPath,
-		Version:      p.Version,
-		World:        p.World,
-		ManifestPath: p.ManifestPath,
+		Name:    p.Name,
+		Label:   p.Label,
+		Version: p.Version,
+		World:   p.World,
 	}
 }

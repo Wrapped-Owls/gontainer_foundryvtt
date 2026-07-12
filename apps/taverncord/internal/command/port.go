@@ -59,15 +59,14 @@ type ProfileInfo struct {
 	HasAdminKey  bool
 }
 
-// ProfileInput carries the editable, non-secret fields of a profile. Admin
-// secrets are intentionally excluded so they are never typed into Discord.
+// ProfileInput carries the editable fields of a profile. The data location,
+// manifest path and admin secrets are intentionally excluded so an edit can
+// never repoint a profile at another disk or set credentials from Discord.
 type ProfileInput struct {
-	Name         string
-	Label        string
-	DataPath     string
-	Version      string
-	World        string
-	ManifestPath string
+	Name    string
+	Label   string
+	Version string
+	World   string
 }
 
 // ProfilesData is the response shape of GET /profiles.
