@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os/signal"
 	"syscall"
@@ -26,11 +27,20 @@ func Run(_ []string, logger *slog.Logger) int {
 		Initial:       procloop.State{},
 		InitialActive: "",
 		Activator:     &noopActivator{},
+		Versions:      noopVersions{},
 		Config:        cfg,
 		Backoff:       backoff.Config{},
 		Logger:        logger,
 	})
 	return mgr.Run(ctx)
+}
+
+type noopVersions struct{}
+
+func (noopVersions) Installed(_ context.Context) ([]string, error) { return nil, nil }
+
+func (noopVersions) Download(_ context.Context, _, _ string) error {
+	return errors.New("version download is unavailable in standalone mode")
 }
 
 type noopActivator struct{}

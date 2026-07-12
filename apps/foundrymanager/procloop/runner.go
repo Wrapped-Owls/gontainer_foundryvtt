@@ -29,12 +29,14 @@ type Runner struct {
 	logger     *slog.Logger
 	ctrl       *controller.SwitchController
 	status     *foundrystatus.Client
+	versions   dashboard.VersionManager
 }
 
 type Params struct {
 	Initial       State
 	InitialActive string
 	Activator     Activator
+	Versions      dashboard.VersionManager
 	Config        config.Config
 	Backoff       backoff.Config
 	Logger        *slog.Logger
@@ -48,6 +50,7 @@ func New(params Params) *Runner {
 	return &Runner{
 		state:      params.Initial,
 		activator:  params.Activator,
+		versions:   params.Versions,
 		cfg:        params.Config,
 		backoffCfg: params.Backoff,
 		logger:     params.Logger,
@@ -60,7 +63,13 @@ func (r *Runner) Run(ctx context.Context) int {
 	dashCtx, cancelDash := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	wg.Go(func() {
-		errCh := dashboard.Start(dashCtx, r.logger, r.cfg.DashboardAddr, r.currentProfiles(), r)
+		errCh := dashboard.Start(dashCtx, dashboard.Params{
+			Logger:   r.logger,
+			Addr:     r.cfg.DashboardAddr,
+			Profiles: r.currentProfiles(),
+			Switcher: r,
+			Versions: r.versions,
+		})
 		if err := <-errCh; err != nil {
 			r.logger.Error("dashboard server stopped unexpectedly", "err", err)
 		}

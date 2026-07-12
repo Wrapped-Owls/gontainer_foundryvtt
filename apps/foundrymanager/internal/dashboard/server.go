@@ -10,23 +10,25 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
-func Start(
-	ctx context.Context,
-	logger *slog.Logger,
-	addr string,
-	profiles []profile.Profile,
-	sw Switcher,
-) <-chan error {
+type Params struct {
+	Logger   *slog.Logger
+	Addr     string
+	Profiles []profile.Profile
+	Switcher Switcher
+	Versions VersionManager
+}
+
+func Start(ctx context.Context, params Params) <-chan error {
 	const readHeaderTimeout = 3 * time.Second
-	refs := make([]profileRef, len(profiles))
-	for i, p := range profiles {
+	refs := make([]profileRef, len(params.Profiles))
+	for i, p := range params.Profiles {
 		refs[i] = profileRef{Name: p.Name, Label: p.Label}
 	}
 
 	mux := http.NewServeMux()
-	registerHandlers(mux, refs, sw, logger)
+	registerHandlers(mux, refs, params.Switcher, params.Versions, params.Logger)
 
-	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
+	srv := &http.Server{Addr: params.Addr, Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
 	errCh := make(chan error, 1)
 
 	context.AfterFunc(ctx, func() {
@@ -37,12 +39,12 @@ func Start(
 	})
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("dashboard server stopped", "err", err)
+			params.Logger.Error("dashboard server stopped", "err", err)
 			errCh <- err
 		}
 		close(errCh)
 	}()
 
-	logger.Info("dashboard server listening", "addr", addr)
+	params.Logger.Info("dashboard server listening", "params.Addr", params.Addr)
 	return errCh
 }

@@ -32,15 +32,15 @@ func Run(_ []string, logger *slog.Logger) int {
 	logger.Info("js runtime selected", "kind", state.JSRuntime.Kind, "path", state.JSRuntime.Path)
 
 	initialState, initialActive := resolveInitialProfile(ctx, logger, state)
-	mgr := procloop.New(
-		initialState,
-		initialActive,
-		&appActivator{base: state, logger: logger},
-		versions.New(state.App.Paths, state.App.Install, logger),
-		state.App.Manager,
-		state.App.Backoff,
-		logger,
-	)
+	mgr := procloop.New(procloop.Params{
+		Initial:       initialState,
+		InitialActive: initialActive,
+		Activator:     &appActivator{base: state, logger: logger},
+		Versions:      versions.New(state.App.Paths, state.App.Install, logger),
+		Config:        state.App.Manager,
+		Backoff:       state.App.Backoff,
+		Logger:        logger,
+	})
 	return mgr.Run(ctx)
 }
 

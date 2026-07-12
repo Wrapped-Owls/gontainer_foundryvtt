@@ -14,6 +14,7 @@ func makeRunner(profiles []profile.Profile) *Runner {
 		Initial:       State{Profiles: profiles, Version: "14.0.0"},
 		InitialActive: "",
 		Activator:     nil,
+		Versions:      nil,
 		Config:        fmconfig.Config{},
 		Backoff:       backoff.Config{},
 		Logger:        slog.Default(),
