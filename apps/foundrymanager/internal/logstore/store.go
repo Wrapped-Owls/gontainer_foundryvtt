@@ -13,6 +13,8 @@ const (
 	DefaultEventBuffer = 100
 )
 
+var errorMarkers = []string{"error", "uncaught", "unhandled", "fatal", "permission"}
+
 type Event struct {
 	Time    time.Time `json:"time"`
 	Kind    string    `json:"kind"`
@@ -42,6 +44,7 @@ func New(maxLines, maxEvents int, patterns []string) *Store {
 
 func (s *Store) Write(p []byte) (int, error) {
 	const maxPartialLine = 64 * 1024 // bounds a newline-free stream
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.partial = append(s.partial, p...)
@@ -61,11 +64,13 @@ func (s *Store) Write(p []byte) (int, error) {
 }
 
 func (s *Store) RecordCrash(exitCode int) {
+	const kindCrash = "crash"
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.pushEvent(Event{
 		Time:    time.Now(),
-		Kind:    "crash",
+		Kind:    kindCrash,
 		Message: fmt.Sprintf("Foundry exited with code %d", exitCode),
 	})
 }
@@ -92,20 +97,30 @@ func (s *Store) EventsSince(cursor int) ([]Event, int) {
 }
 
 func (s *Store) appendLine(line string) {
+	const kindError = "error"
+
+	if !s.isError(line) {
+		return
+	}
 	s.lines = append(s.lines, line)
 	if len(s.lines) > s.maxLines {
 		s.lines = s.lines[len(s.lines)-s.maxLines:]
 	}
-	if s.matches(line) {
-		s.pushEvent(Event{Time: time.Now(), Kind: "error", Message: line})
+	if n := len(s.events); n > 0 {
+		if last := s.events[n-1]; last.Kind == kindError && last.Message == line {
+			return
+		}
 	}
+	s.pushEvent(Event{Time: time.Now(), Kind: kindError, Message: line})
 }
 
-func (s *Store) matches(line string) bool {
-	if len(s.patterns) == 0 {
-		return false
-	}
+func (s *Store) isError(line string) bool {
 	low := strings.ToLower(line)
+	for _, m := range errorMarkers {
+		if strings.Contains(low, m) {
+			return true
+		}
+	}
 	for _, p := range s.patterns {
 		if strings.Contains(low, p) {
 			return true
