@@ -34,17 +34,30 @@ func (r *Runner) CreateProfile(p profile.Profile) error {
 }
 
 // UpdateProfile merges the non-empty fields of p onto the existing profile named
-// name and persists the result. It returns profile.ErrNotFound when absent.
+// name and persists the result. It returns profile.ErrNotFound when absent. If
+// name is the active profile and its version or world actually changed, the
+// edit is applied to a stale, already-running session; queue a switch so the
+// new version/world takes effect instead of silently going inert.
 func (r *Runner) UpdateProfile(name string, p profile.Profile) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 	idx := r.indexOf(name)
 	if idx < 0 {
+		r.mu.Unlock()
 		return fmt.Errorf("%w: %q", profile.ErrNotFound, name)
 	}
+	before := r.state.Profiles[idx]
 	updated := slices.Clone(r.state.Profiles)
 	applyOverrides(&updated[idx], p)
-	return r.persistProfiles(updated)
+	after := updated[idx]
+	err := r.persistProfiles(updated)
+	r.mu.Unlock()
+	if err != nil {
+		return err
+	}
+	if name == r.ctrl.Active() && (before.Version != after.Version || before.World != after.World) {
+		r.ctrl.RequestSwitch(name)
+	}
+	return nil
 }
 
 // DeleteProfile removes the named profile and persists the list. It refuses to

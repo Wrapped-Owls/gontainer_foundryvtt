@@ -77,6 +77,57 @@ func TestUpdateProfile_appliesOnlyEditableFields(t *testing.T) {
 	}
 }
 
+func TestUpdateProfile_activeProfile_queuesSwitchOnVersionOrWorldChange(t *testing.T) {
+	testCases := []struct {
+		name       string
+		update     profile.Profile
+		wantSwitch bool
+	}{
+		{"version changed", profile.Profile{Version: "13.0.0"}, true},
+		{"world changed", profile.Profile{World: "avalon"}, true},
+		{"label only", profile.Profile{Label: "Alice"}, false},
+		{"same version", profile.Profile{Version: "14.0.0"}, false},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			r := makeStore(
+				t, "alice",
+				[]profile.Profile{{Name: "alice", DataPath: "/d", Version: "14.0.0"}},
+			)
+			if err := r.UpdateProfile("alice", testCase.update); err != nil {
+				t.Fatalf("update: %v", err)
+			}
+			select {
+			case got := <-r.ctrl.SwitchCh:
+				if !testCase.wantSwitch {
+					t.Errorf("unexpected switch queued for %q", got)
+				} else if got != "alice" {
+					t.Errorf("expected switch queued for alice, got %q", got)
+				}
+			default:
+				if testCase.wantSwitch {
+					t.Error("expected a switch to be queued")
+				}
+			}
+		})
+	}
+}
+
+func TestUpdateProfile_inactiveProfile_doesNotQueueSwitch(t *testing.T) {
+	r := makeStore(t, "alice", []profile.Profile{
+		{Name: "alice", DataPath: "/d"},
+		{Name: "bob", DataPath: "/d2", Version: "14.0.0"},
+	})
+	if err := r.UpdateProfile("bob", profile.Profile{Version: "13.0.0"}); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	select {
+	case got := <-r.ctrl.SwitchCh:
+		t.Errorf("unexpected switch queued for %q; bob is not the active profile", got)
+	default:
+	}
+}
+
 func TestUpdateProfile_notFound(t *testing.T) {
 	r := makeStore(t, "", nil)
 	if err := r.UpdateProfile(
