@@ -23,6 +23,32 @@ type FoundryClient interface {
 	Status(ctx context.Context) (StatusData, error)
 	Versions(ctx context.Context) (VersionsData, error)
 	Download(ctx context.Context, version, url string) error
+	GetProfile(ctx context.Context, name string) (ProfileInfo, error)
+	CreateProfile(ctx context.Context, p ProfileInput) error
+	UpdateProfile(ctx context.Context, name string, p ProfileInput) error
+	DeleteProfile(ctx context.Context, name string) error
+}
+
+// ProfileInfo is the non-secret view of a profile returned by GET /profiles/{name}.
+type ProfileInfo struct {
+	Name         string
+	Label        string
+	DataPath     string
+	Version      string
+	World        string
+	ManifestPath string
+	HasAdminKey  bool
+}
+
+// ProfileInput carries the editable, non-secret fields of a profile. Admin
+// secrets are intentionally excluded so they are never typed into Discord.
+type ProfileInput struct {
+	Name         string
+	Label        string
+	DataPath     string
+	Version      string
+	World        string
+	ManifestPath string
 }
 
 // ProfilesData is the response shape of GET /profiles.

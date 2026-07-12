@@ -36,6 +36,25 @@ type downloadBody struct {
 	URL     string `json:"url"`
 }
 
+type profileDetailResp struct {
+	Name         string `json:"name"`
+	Label        string `json:"label"`
+	DataPath     string `json:"dataPath"`
+	Version      string `json:"version"`
+	World        string `json:"world"`
+	ManifestPath string `json:"manifestPath"`
+	HasAdminKey  bool   `json:"hasAdminKey"`
+}
+
+type profileBody struct {
+	Name         string `json:"name,omitempty"`
+	Label        string `json:"label,omitempty"`
+	DataPath     string `json:"dataPath,omitempty"`
+	Version      string `json:"version,omitempty"`
+	World        string `json:"world,omitempty"`
+	ManifestPath string `json:"manifestPath,omitempty"`
+}
+
 type errorResp struct {
 	Error string `json:"error"`
 }

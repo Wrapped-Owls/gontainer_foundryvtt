@@ -31,6 +31,22 @@ func FromFile(path string) (profiles []profile.Profile, active string, err error
 	return f.Profiles, f.Active, nil
 }
 
+// WriteProfiles persists the given profiles into the JSON file at path,
+// preserving the recorded active profile name. Creates the file if absent.
+func WriteProfiles(path string, profiles []profile.Profile) error {
+	data, _ := os.ReadFile(path) //nolint:gosec
+	var f profileFile
+	if len(data) > 0 {
+		_ = json.Unmarshal(data, &f)
+	}
+	f.Profiles = profiles
+	out, err := json.MarshalIndent(f, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(out, '\n'), 0o600) //nolint:gosec
+}
+
 // WriteActive persists the active profile name into the JSON file at path,
 // preserving any existing profiles array. Creates the file if absent.
 func WriteActive(path, name string) error {

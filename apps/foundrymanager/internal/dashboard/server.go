@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
-
-	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
 const (
@@ -22,17 +20,12 @@ func Start(
 	ctx context.Context,
 	logger *slog.Logger,
 	addr string,
-	profiles []profile.Profile,
 	sw Switcher,
 	vm VersionManager,
+	ps ProfileStore,
 ) <-chan error {
-	refs := make([]profileRef, len(profiles))
-	for i, p := range profiles {
-		refs[i] = profileRef{Name: p.Name, Label: p.Label}
-	}
-
 	mux := http.NewServeMux()
-	registerHandlers(mux, refs, sw, vm, logger)
+	registerHandlers(mux, sw, vm, ps, logger)
 
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
 	errCh := make(chan error, 1)

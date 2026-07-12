@@ -28,6 +28,16 @@ func (s *stubFoundryClient) Versions(_ context.Context) (command.VersionsData, e
 	return command.VersionsData{}, nil
 }
 func (s *stubFoundryClient) Download(_ context.Context, _, _ string) error { return nil }
+func (s *stubFoundryClient) GetProfile(_ context.Context, _ string) (command.ProfileInfo, error) {
+	return command.ProfileInfo{}, nil
+}
+func (s *stubFoundryClient) CreateProfile(_ context.Context, _ command.ProfileInput) error {
+	return nil
+}
+func (s *stubFoundryClient) UpdateProfile(_ context.Context, _ string, _ command.ProfileInput) error {
+	return nil
+}
+func (s *stubFoundryClient) DeleteProfile(_ context.Context, _ string) error { return nil }
 
 func makeProfileCmds(client command.FoundryClient) *command.ProfileCommands {
 	return command.New(client, slog.Default())

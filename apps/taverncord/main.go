@@ -38,7 +38,11 @@ func main() {
 		Add(discordadapter.SwitchCmd(cmds)).
 		Add(discordadapter.StatusCmd(cmds)).
 		Add(discordadapter.VersionsCmd(cmds)).
-		Add(discordadapter.DownloadCmd(cmds))
+		Add(discordadapter.DownloadCmd(cmds)).
+		Add(discordadapter.ProfileShowCmd(cmds)).
+		Add(discordadapter.ProfileCreateCmd(cmds)).
+		Add(discordadapter.ProfileEditCmd(cmds)).
+		Add(discordadapter.ProfileDeleteCmd(cmds))
 
 	adapter, err := discordadapter.New(cfg, router, logger)
 	if err != nil {

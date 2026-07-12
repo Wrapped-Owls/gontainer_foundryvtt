@@ -9,16 +9,19 @@ import (
 
 func registerHandlers(
 	mux *http.ServeMux,
-	refs []profileRef,
 	sw Switcher,
 	vm VersionManager,
+	ps ProfileStore,
 	logger *slog.Logger,
 ) {
+	registerProfileHandlers(mux, ps, logger)
 	mux.HandleFunc("GET /profiles", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, logger, http.StatusOK, profilesResponse{
-			Active:   sw.Active(),
-			Profiles: refs,
-		})
+		profiles := ps.ListProfiles()
+		refs := make([]profileRef, len(profiles))
+		for i, p := range profiles {
+			refs[i] = profileRef{Name: p.Name, Label: p.Label}
+		}
+		writeJSON(w, logger, http.StatusOK, profilesResponse{Active: sw.Active(), Profiles: refs})
 	})
 	mux.HandleFunc("POST /switch", func(w http.ResponseWriter, r *http.Request) {
 		var body switchBody
