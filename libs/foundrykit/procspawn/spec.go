@@ -1,6 +1,9 @@
 package procspawn
 
-import "os"
+import (
+	"io"
+	"os"
+)
 
 // Spec describes how to execute a child process.
 type Spec struct {
@@ -17,8 +20,9 @@ type Spec struct {
 	// parent and forwarded to the child's process group. Defaults to
 	// SIGTERM + SIGINT when nil.
 	ForwardSignals []os.Signal
-	// Stdin/Stdout/Stderr default to os.Std*.
+	// Stdin defaults to os.Stdin. Stdout/Stderr default to os.Stdout/os.Stderr
+	// and may be any writer (e.g. an io.MultiWriter that also captures logs).
 	Stdin  *os.File
-	Stdout *os.File
-	Stderr *os.File
+	Stdout io.Writer
+	Stderr io.Writer
 }
