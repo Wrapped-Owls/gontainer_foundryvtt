@@ -55,7 +55,7 @@ func (r *Runner) buildSpec() procspawn.Spec {
 	mainScript := filepath.Join(s.InstallRoot, s.MainScript)
 	return procspawn.Spec{
 		Path:   s.JSRuntime.Path,
-		Args:   BuildArgs(s.JSRuntime.Kind, mainScript, s.DataPath, s.Port),
+		Args:   BuildArgs(s.JSRuntime.Kind, mainScript, s.DataPath, s.Port, s.World),
 		Dir:    s.InstallRoot,
 		Stdout: io.MultiWriter(os.Stdout, r.logs),
 		Stderr: io.MultiWriter(os.Stderr, r.logs),

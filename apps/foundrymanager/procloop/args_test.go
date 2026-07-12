@@ -1,6 +1,7 @@
 package procloop
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime/jsruntime"
@@ -9,12 +10,13 @@ import (
 const testMainScript = "/foundry/main.mjs"
 
 func TestBuildArgs(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name       string
 		kind       jsruntime.Kind
 		mainScript string
 		dataPath   string
 		port       int
+		world      string
 		want       []string
 	}{
 		{
@@ -33,17 +35,40 @@ func TestBuildArgs(t *testing.T) {
 			port:       30000,
 			want:       []string{"run", testMainScript, "--dataPath=/data", "--port=30000"},
 		},
+		{
+			name:       "node with world",
+			kind:       jsruntime.Node,
+			mainScript: testMainScript,
+			dataPath:   "/data",
+			port:       30000,
+			world:      "my-world",
+			want: []string{
+				testMainScript, "--dataPath=/data", "--port=30000", "--world=my-world",
+			},
+		},
+		{
+			name:       "bun with world",
+			kind:       jsruntime.Bun,
+			mainScript: testMainScript,
+			dataPath:   "/data",
+			port:       30000,
+			world:      "my-world",
+			want: []string{
+				"run", testMainScript, "--dataPath=/data", "--port=30000", "--world=my-world",
+			},
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := BuildArgs(tt.kind, tt.mainScript, tt.dataPath, tt.port)
-			if len(got) != len(tt.want) {
-				t.Fatalf("len mismatch: got %v, want %v", got, tt.want)
-			}
-			for i := range got {
-				if got[i] != tt.want[i] {
-					t.Errorf("arg[%d]: got %q, want %q", i, got[i], tt.want[i])
-				}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := BuildArgs(
+				testCase.kind,
+				testCase.mainScript,
+				testCase.dataPath,
+				testCase.port,
+				testCase.world,
+			)
+			if !slices.Equal(got, testCase.want) {
+				t.Errorf("BuildArgs = %v, want %v", got, testCase.want)
 			}
 		})
 	}
