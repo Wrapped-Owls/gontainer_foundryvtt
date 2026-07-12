@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/fsperm"
 )
 
 type profileFile struct {
@@ -27,6 +28,20 @@ func FromFile(path string) (profiles []profile.Profile, active string, err error
 		return nil, "", err
 	}
 	return f.Profiles, f.Active, nil
+}
+
+func WriteProfiles(path string, profiles []profile.Profile) error {
+	stored, _ := os.ReadFile(path) //nolint:gosec
+	var f profileFile
+	if len(stored) > 0 {
+		_ = json.Unmarshal(stored, &f)
+	}
+	f.Profiles = profiles
+	out, err := json.MarshalIndent(f, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(out, '\n'), fsperm.Secret)
 }
 
 func WriteActive(path, name string) error {
