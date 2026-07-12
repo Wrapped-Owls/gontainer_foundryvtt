@@ -17,12 +17,16 @@ type stubClient struct {
 	switchErr error
 	listErr   error
 	statusErr error
+	gotForce  bool
 }
 
 func (s *stubClient) ListProfiles(_ context.Context) (ProfilesData, error) {
 	return s.profiles, s.listErr
 }
-func (s *stubClient) Switch(_ context.Context, _ string) error { return s.switchErr }
+func (s *stubClient) Switch(_ context.Context, _ string, force bool) error {
+	s.gotForce = force
+	return s.switchErr
+}
 func (s *stubClient) Status(_ context.Context) (StatusData, error) {
 	return s.status, s.statusErr
 }
@@ -85,7 +89,7 @@ func TestList_clientError(t *testing.T) {
 
 func TestSwitch_success_editsMessage(t *testing.T) {
 	resp := &stubResponder{}
-	if err := makeCommands(&stubClient{}).Switch(context.Background(), resp, "bob"); err != nil {
+	if err := makeCommands(&stubClient{}).Switch(context.Background(), resp, "bob", false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if resp.ephemeral {
@@ -102,7 +106,7 @@ func TestSwitch_success_editsMessage(t *testing.T) {
 func TestSwitch_failure_editsMessage(t *testing.T) {
 	client := &stubClient{switchErr: errors.New("unknown profile")}
 	resp := &stubResponder{}
-	if err := makeCommands(client).Switch(context.Background(), resp, "nobody"); err != nil {
+	if err := makeCommands(client).Switch(context.Background(), resp, "nobody", false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(resp.edited, "❌") {
@@ -113,13 +117,43 @@ func TestSwitch_failure_editsMessage(t *testing.T) {
 	}
 }
 
-func TestStatus_success(t *testing.T) {
-	client := &stubClient{status: StatusData{Active: "alice", Version: "14.0.0"}}
+func TestSwitch_passesForce(t *testing.T) {
+	client := &stubClient{}
+	resp := &stubResponder{}
+	if err := makeCommands(client).Switch(context.Background(), resp, "bob", true); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !client.gotForce {
+		t.Error("expected force flag to be forwarded to the client")
+	}
+}
+
+func TestStatus_offline(t *testing.T) {
+	client := &stubClient{status: StatusData{Active: "alice", Version: "14.0.0", Online: false}}
 	resp := &stubResponder{}
 	if err := makeCommands(client).Status(context.Background(), resp); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(resp.content, "alice") || !strings.Contains(resp.content, "14.0.0") {
 		t.Errorf("expected active+version in response, got %q", resp.content)
+	}
+	if !strings.Contains(resp.content, "offline") {
+		t.Errorf("expected offline marker, got %q", resp.content)
+	}
+}
+
+func TestStatus_online(t *testing.T) {
+	client := &stubClient{status: StatusData{
+		Active: "alice", Version: "13.351", Online: true, WorldActive: true,
+		World: "my-world", System: "projectfu", SystemVersion: "4.16.1", Users: 3, UptimeMS: 6230770,
+	}}
+	resp := &stubResponder{}
+	if err := makeCommands(client).Status(context.Background(), resp); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{"online", "my-world", "projectfu", "3"} {
+		if !strings.Contains(resp.content, want) {
+			t.Errorf("expected %q in response, got %q", want, resp.content)
+		}
 	}
 }

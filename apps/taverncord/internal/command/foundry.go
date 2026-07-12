@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 )
 
 // ProfileCommands implements the /foundry subcommand logic.
@@ -48,24 +49,46 @@ func (pc *ProfileCommands) List(ctx context.Context, r Responder) error {
 
 // Switch requests a profile change and reports the outcome to the responder.
 // It sends an immediate acknowledgement, then edits it once the HTTP call resolves.
-func (pc *ProfileCommands) Switch(ctx context.Context, r Responder, name string) error {
+// When force is false the switch is refused if players are connected.
+func (pc *ProfileCommands) Switch(ctx context.Context, r Responder, name string, force bool) error {
 	if err := r.Send(ctx, fmt.Sprintf("⏳ Switching to profile **%s**…", name), false); err != nil {
 		return err
 	}
-	if err := pc.client.Switch(ctx, name); err != nil {
+	if err := pc.client.Switch(ctx, name, force); err != nil {
 		pc.logger.Error("switch profile failed", "profile", name, "err", err)
 		return r.Edit(ctx, fmt.Sprintf("❌ Switch failed: %s", err.Error()))
 	}
 	return r.Edit(ctx, fmt.Sprintf("✅ Switched to **%s** — server is restarting.", name))
 }
 
-// Status fetches the current active profile and version and sends it to the responder.
+// Status fetches the active profile and the live Foundry server status and sends
+// a formatted summary to the responder.
 func (pc *ProfileCommands) Status(ctx context.Context, r Responder) error {
 	data, err := pc.client.Status(ctx)
 	if err != nil {
 		pc.logger.Error("status failed", "err", err)
 		return r.Send(ctx, "Failed to fetch status from Foundry.", true)
 	}
-	msg := fmt.Sprintf("**Active profile:** `%s`\n**Version:** `%s`", data.Active, data.Version)
-	return r.Send(ctx, msg, true)
+
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "**Active profile:** `%s`\n**Version:** `%s`\n", data.Active, data.Version)
+	if !data.Online {
+		sb.WriteString("**Server:** ⚫ offline")
+		return r.Send(ctx, sb.String(), true)
+	}
+	sb.WriteString("**Server:** 🟢 online\n")
+	if data.WorldActive && data.World != "" {
+		fmt.Fprintf(&sb, "**World:** `%s`\n", data.World)
+		if data.System != "" {
+			fmt.Fprintf(&sb, "**System:** `%s %s`\n", data.System, data.SystemVersion)
+		}
+	} else {
+		sb.WriteString("**World:** none active (setup screen)\n")
+	}
+	fmt.Fprintf(&sb, "**Users online:** %d", data.Users)
+	if data.UptimeMS > 0 {
+		uptime := (time.Duration(data.UptimeMS) * time.Millisecond).Round(time.Second)
+		fmt.Fprintf(&sb, "\n**Uptime:** %s", uptime)
+	}
+	return r.Send(ctx, sb.String(), true)
 }

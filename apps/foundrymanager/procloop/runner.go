@@ -4,14 +4,22 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"sync"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/config"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/controller"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/dashboard"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/foundrystatus"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 )
+
+// statusTimeout bounds the live status probe against the local Foundry server.
+const statusTimeout = 2 * time.Second
+
+var _ dashboard.Switcher = (*Runner)(nil)
 
 // Runner runs the Foundry process, handles backoff restarts, and applies
 // profile switches requested via the dashboard.
@@ -23,6 +31,7 @@ type Runner struct {
 	cfg        config.Config
 	logger     *slog.Logger
 	ctrl       *controller.SwitchController
+	status     *foundrystatus.Client
 }
 
 // New creates a Runner ready to run. The dashboard is started internally when
@@ -47,6 +56,7 @@ func New(
 		backoffCfg: backoffCfg,
 		logger:     logger,
 		ctrl:       ctrl,
+		status:     foundrystatus.NewClient(&http.Client{Timeout: statusTimeout}),
 	}
 }
 
@@ -88,6 +98,21 @@ func (r *Runner) Version() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.state.Version
+}
+
+// FoundryStatus probes the running Foundry server for its live status. It
+// returns an error when the server is unreachable (for example between
+// restarts), which callers treat as "no users connected".
+func (r *Runner) FoundryStatus(ctx context.Context) (foundrystatus.Status, error) {
+	r.mu.RLock()
+	port := r.state.Port
+	r.mu.RUnlock()
+
+	ctx, cancel := context.WithTimeout(ctx, statusTimeout)
+	defer cancel()
+	// simplification: assumes no route prefix; local probes hit the bare port.
+	// Upgrade path: thread Runtime.RoutePrefix into procloop.State if needed.
+	return r.status.Fetch(ctx, fmt.Sprintf("http://127.0.0.1:%d", port))
 }
 
 func (r *Runner) currentProfiles() []profile.Profile {

@@ -19,7 +19,7 @@ type Responder interface {
 // Implemented by foundryclient.Client.
 type FoundryClient interface {
 	ListProfiles(ctx context.Context) (ProfilesData, error)
-	Switch(ctx context.Context, name string) error
+	Switch(ctx context.Context, name string, force bool) error
 	Status(ctx context.Context) (StatusData, error)
 }
 
@@ -29,8 +29,16 @@ type ProfilesData struct {
 	Profiles []profile.Profile
 }
 
-// StatusData is the response shape of GET /status.
+// StatusData is the response shape of GET /status: the active profile plus the
+// live status of the running Foundry server (zero-valued when offline).
 type StatusData struct {
-	Active  string
-	Version string
+	Active        string
+	Version       string
+	Online        bool
+	WorldActive   bool
+	World         string
+	System        string
+	SystemVersion string
+	Users         int
+	UptimeMS      int64
 }

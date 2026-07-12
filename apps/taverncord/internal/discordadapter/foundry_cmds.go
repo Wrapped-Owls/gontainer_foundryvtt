@@ -37,12 +37,17 @@ func (c *switchCmd) Spec() *discordgo.ApplicationCommandOption {
 				Description: "Profile name to activate",
 				Required:    true,
 			},
+			{
+				Type:        discordgo.ApplicationCommandOptionBoolean,
+				Name:        "force",
+				Description: "Switch even if players are currently online",
+			},
 		},
 	}
 }
 
 func (c *switchCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
-	return c.cmds.Switch(ctx, r, opts.String("name"))
+	return c.cmds.Switch(ctx, r, opts.String("name"), opts.Bool("force"))
 }
 
 // statusCmd handles /foundry status.

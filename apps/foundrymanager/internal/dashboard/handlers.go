@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 )
@@ -20,17 +21,34 @@ func registerHandlers(mux *http.ServeMux, refs []profileRef, sw Switcher, logger
 				errorResponse{Error: "invalid request body"})
 			return
 		}
+		if !body.Force {
+			if st, err := sw.FoundryStatus(r.Context()); err == nil && st.Active && st.Users > 0 {
+				writeJSON(w, logger, http.StatusConflict, errorResponse{Error: fmt.Sprintf(
+					"%d user(s) currently online; resend with force to switch anyway", st.Users)})
+				return
+			}
+		}
 		if err := sw.RequestSwitch(body.Profile); err != nil {
 			writeJSON(w, logger, http.StatusBadRequest, errorResponse{Error: err.Error()})
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
 	})
-	mux.HandleFunc("GET /status", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, logger, http.StatusOK, statusResponse{
-			Active:  sw.Active(),
-			Version: sw.Version(),
-		})
+	mux.HandleFunc("GET /status", func(w http.ResponseWriter, r *http.Request) {
+		resp := statusResponse{Active: sw.Active(), Version: sw.Version()}
+		if st, err := sw.FoundryStatus(r.Context()); err == nil {
+			resp.Online = true
+			resp.WorldActive = st.Active
+			resp.World = st.World
+			resp.System = st.System
+			resp.SystemVersion = st.SystemVersion
+			resp.Users = st.Users
+			resp.UptimeMS = st.UptimeMS
+			if st.Version != "" {
+				resp.Version = st.Version
+			}
+		}
+		writeJSON(w, logger, http.StatusOK, resp)
 	})
 }
 

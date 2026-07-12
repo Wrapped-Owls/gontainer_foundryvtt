@@ -20,7 +20,7 @@ type stubFoundryClient struct {
 func (s *stubFoundryClient) ListProfiles(_ context.Context) (command.ProfilesData, error) {
 	return s.profiles, nil
 }
-func (s *stubFoundryClient) Switch(_ context.Context, _ string) error { return s.switchErr }
+func (s *stubFoundryClient) Switch(_ context.Context, _ string, _ bool) error { return s.switchErr }
 func (s *stubFoundryClient) Status(_ context.Context) (command.StatusData, error) {
 	return s.status, nil
 }
