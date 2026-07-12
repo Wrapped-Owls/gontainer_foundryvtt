@@ -66,9 +66,9 @@ func (r *Runner) Run(ctx context.Context) int {
 		errCh := dashboard.Start(dashCtx, dashboard.Params{
 			Logger:   r.logger,
 			Addr:     r.cfg.DashboardAddr,
-			Profiles: r.currentProfiles(),
-			Switcher: r,
-			Versions: r.versions,
+			Profiles: r,
+			Switcher: r.versions,
+			Versions: r,
 		})
 		if err := <-errCh; err != nil {
 			r.logger.Error("dashboard server stopped unexpectedly", "err", err)
