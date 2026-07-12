@@ -14,6 +14,10 @@ type Client struct {
 	cfg jsonhttp.ClientConfig
 }
 
+var _ command.FoundryClient = (*Client)(nil)
+
+const profilesPath = "/profiles"
+
 func New(baseURL string) *Client {
 	return &Client{cfg: jsonhttp.ClientConfig{
 		BaseURL: baseURL,
@@ -27,7 +31,7 @@ func (c *Client) ListProfiles(ctx context.Context) (command.ProfilesData, error)
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,
-			Path:   "/profiles",
+			Path:   profilesPath,
 		},
 	)
 	if err != nil {

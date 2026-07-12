@@ -31,6 +31,29 @@ type FoundryClient interface {
 	Status(ctx context.Context) (StatusData, error)
 	Versions(ctx context.Context) (VersionsData, error)
 	Download(ctx context.Context, version, url string) error
+	GetProfile(ctx context.Context, name string) (ProfileInfo, error)
+	CreateProfile(ctx context.Context, p ProfileInput) error
+	UpdateProfile(ctx context.Context, name string, p ProfileInput) error
+	DeleteProfile(ctx context.Context, name string) error
+}
+
+type ProfileInfo struct {
+	Name         string
+	Label        string
+	DataPath     string
+	Version      string
+	World        string
+	ManifestPath string
+	HasAdminKey  bool
+}
+
+type ProfileInput struct {
+	Name         string
+	Label        string
+	DataPath     string
+	Version      string
+	World        string
+	ManifestPath string
 }
 
 type ProfilesData struct {

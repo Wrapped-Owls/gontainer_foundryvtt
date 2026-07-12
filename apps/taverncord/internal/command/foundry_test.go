@@ -14,14 +14,21 @@ type stubClient struct {
 	profiles     ProfilesData
 	status       StatusData
 	versions     VersionsData
+	profileInfo  ProfileInfo
 	switchErr    error
 	listErr      error
 	statusErr    error
 	versionsErr  error
 	downloadErr  error
+	profileErr   error
+	createErr    error
+	updateErr    error
+	deleteErr    error
 	gotInterrupt Interrupt
 	gotVersion   string
 	gotURL       string
+	lastName     string
+	lastInput    ProfileInput
 }
 
 func (s *stubClient) ListProfiles(_ context.Context) (ProfilesData, error) {
@@ -44,6 +51,25 @@ func (s *stubClient) Versions(_ context.Context) (VersionsData, error) {
 func (s *stubClient) Download(_ context.Context, version, url string) error {
 	s.gotVersion, s.gotURL = version, url
 	return s.downloadErr
+}
+
+func (s *stubClient) GetProfile(_ context.Context, _ string) (ProfileInfo, error) {
+	return s.profileInfo, s.profileErr
+}
+
+func (s *stubClient) CreateProfile(_ context.Context, p ProfileInput) error {
+	s.lastInput = p
+	return s.createErr
+}
+
+func (s *stubClient) UpdateProfile(_ context.Context, name string, p ProfileInput) error {
+	s.lastName, s.lastInput = name, p
+	return s.updateErr
+}
+
+func (s *stubClient) DeleteProfile(_ context.Context, name string) error {
+	s.lastName = name
+	return s.deleteErr
 }
 
 type stubResponder struct {
