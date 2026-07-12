@@ -25,7 +25,7 @@ apps/<name>/
 ```
 module github.com/wrapped-owls/gontainer_foundryvtt/apps/<name>
 
-go 1.26.2
+go 1.26
 
 require (
     github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit v0.0.0
