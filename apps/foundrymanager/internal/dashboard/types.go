@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/foundrystatus"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
 type Switcher interface {
@@ -18,6 +19,14 @@ type VersionManager interface {
 	Download(ctx context.Context, version, url string) error
 }
 
+type ProfileStore interface {
+	ListProfiles() []profile.Profile
+	GetProfile(name string) (profile.Profile, bool)
+	CreateProfile(p profile.Profile) error
+	UpdateProfile(name string, p profile.Profile) error
+	DeleteProfile(name string) error
+}
+
 type profileRef struct {
 	Name  string `json:"name"`
 	Label string `json:"label"`
@@ -26,6 +35,28 @@ type profileRef struct {
 type profilesResponse struct {
 	Active   string       `json:"active"`
 	Profiles []profileRef `json:"profiles"`
+}
+
+type profileDetail struct { // omits admin key and salt so secrets never leave the manager
+	Name         string `json:"name"`
+	Label        string `json:"label"`
+	DataPath     string `json:"dataPath"`
+	Version      string `json:"version"`
+	World        string `json:"world"`
+	ManifestPath string `json:"manifestPath"`
+	HasAdminKey  bool   `json:"hasAdminKey"`
+}
+
+func toDetail(p profile.Profile) profileDetail {
+	return profileDetail{
+		Name:         p.Name,
+		Label:        p.Label,
+		DataPath:     p.DataPath,
+		Version:      p.Version,
+		World:        p.World,
+		ManifestPath: p.ManifestPath,
+		HasAdminKey:  p.AdminKey != "",
+	}
 }
 
 type switchBody struct {

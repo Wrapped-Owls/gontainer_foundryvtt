@@ -6,27 +6,20 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
-
-	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
 type Params struct {
 	Logger   *slog.Logger
 	Addr     string
-	Profiles []profile.Profile
 	Switcher Switcher
 	Versions VersionManager
+	Profiles ProfileStore
 }
 
 func Start(ctx context.Context, params Params) <-chan error {
 	const readHeaderTimeout = 3 * time.Second
-	refs := make([]profileRef, len(params.Profiles))
-	for i, p := range params.Profiles {
-		refs[i] = profileRef{Name: p.Name, Label: p.Label}
-	}
-
 	mux := http.NewServeMux()
-	registerHandlers(mux, refs, params.Switcher, params.Versions, params.Logger)
+	registerHandlers(mux, params.Switcher, params.Versions, params.Profiles, params.Logger)
 
 	srv := &http.Server{Addr: params.Addr, Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
 	errCh := make(chan error, 1)
