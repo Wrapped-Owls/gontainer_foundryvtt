@@ -25,6 +25,10 @@ func (r *Runner) applySwitch(ctx context.Context) error {
 			return fmt.Errorf("switch to %q: %w", name, err)
 		}
 		r.mu.Lock()
+		// The activator resolves against its own boot-time profile snapshot and
+		// its returned state's Profiles reflects that snapshot, not any create,
+		// edit or delete applied since boot. Keep the live, persisted list.
+		newState.Profiles = r.state.Profiles
 		r.state = newState
 		r.mu.Unlock()
 		r.ctrl.SetActive(name)
