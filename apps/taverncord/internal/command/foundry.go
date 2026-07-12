@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 )
 
 type ProfileCommands struct {
@@ -42,7 +43,12 @@ func (pc *ProfileCommands) List(ctx context.Context, r Responder) error {
 	return r.Send(ctx, sb.String(), Private)
 }
 
-func (pc *ProfileCommands) Switch(ctx context.Context, r Responder, name string) error {
+func (pc *ProfileCommands) Switch(
+	ctx context.Context,
+	r Responder,
+	name string,
+	interrupt Interrupt,
+) error {
 	if err := r.Send(
 		ctx,
 		fmt.Sprintf("⏳ Switching to profile **%s**...", name),
@@ -50,7 +56,7 @@ func (pc *ProfileCommands) Switch(ctx context.Context, r Responder, name string)
 	); err != nil {
 		return err
 	}
-	if err := pc.client.Switch(ctx, name); err != nil {
+	if err := pc.client.Switch(ctx, name, interrupt); err != nil {
 		pc.logger.Error("switch profile failed", "profile", name, "err", err)
 		return r.Edit(ctx, fmt.Sprintf("❌ Switch failed: %s", err.Error()))
 	}
@@ -63,6 +69,26 @@ func (pc *ProfileCommands) Status(ctx context.Context, r Responder) error {
 		pc.logger.Error("status failed", "err", err)
 		return r.Send(ctx, "Failed to fetch status from Foundry.", Private)
 	}
-	msg := fmt.Sprintf("**Active profile:** `%s`\n**Version:** `%s`", status.Active, status.Version)
-	return r.Send(ctx, msg, Private)
+
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "**Active profile:** `%s`\n**Version:** `%s`\n", status.Active, status.Version)
+	if !status.Online {
+		sb.WriteString("**Server:** ⚫ offline")
+		return r.Send(ctx, sb.String(), Private)
+	}
+	sb.WriteString("**Server:** 🟢 online\n")
+	if status.WorldActive && status.World != "" {
+		fmt.Fprintf(&sb, "**World:** `%s`\n", status.World)
+		if status.System != "" {
+			fmt.Fprintf(&sb, "**System:** `%s %s`\n", status.System, status.SystemVersion)
+		}
+	} else {
+		sb.WriteString("**World:** none active (setup screen)\n")
+	}
+	fmt.Fprintf(&sb, "**Users online:** %d", status.Users)
+	if status.UptimeMS > 0 {
+		uptime := (time.Duration(status.UptimeMS) * time.Millisecond).Round(time.Second)
+		fmt.Fprintf(&sb, "\n**Uptime:** %s", uptime)
+	}
+	return r.Send(ctx, sb.String(), Private)
 }

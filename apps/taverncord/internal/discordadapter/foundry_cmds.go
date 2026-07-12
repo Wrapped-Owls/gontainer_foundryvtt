@@ -35,12 +35,17 @@ func (c *switchCmd) Spec() *discordgo.ApplicationCommandOption {
 				Description: "Profile name to activate",
 				Required:    true,
 			},
+			{
+				Type:        discordgo.ApplicationCommandOptionBoolean,
+				Name:        "force",
+				Description: "Switch even if players are currently online",
+			},
 		},
 	}
 }
 
 func (c *switchCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
-	return c.cmds.Switch(ctx, r, opts.String("name"))
+	return c.cmds.Switch(ctx, r, opts.String("name"), interruptOf(opts))
 }
 
 type statusCmd struct{ cmds *command.ProfileCommands }
@@ -62,3 +67,10 @@ func ListCmd(cmds *command.ProfileCommands) SubCommand { return &listCmd{cmds: c
 func SwitchCmd(cmds *command.ProfileCommands) SubCommand { return &switchCmd{cmds: cmds} }
 
 func StatusCmd(cmds *command.ProfileCommands) SubCommand { return &statusCmd{cmds: cmds} }
+
+func interruptOf(opts OptionMap) command.Interrupt {
+	if opts.Bool("force") {
+		return command.InterruptAlways
+	}
+	return command.InterruptWhenIdle
+}

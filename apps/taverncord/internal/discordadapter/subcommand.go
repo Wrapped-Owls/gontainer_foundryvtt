@@ -16,6 +16,13 @@ func (m OptionMap) String(key string) string {
 	return ""
 }
 
+func (m OptionMap) Bool(key string) bool {
+	if opt, ok := m[key]; ok {
+		return opt.BoolValue()
+	}
+	return false
+}
+
 func newOptionMap(opts []*discordgo.ApplicationCommandInteractionDataOption) OptionMap {
 	m := make(OptionMap, len(opts))
 	for _, o := range opts {

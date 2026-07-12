@@ -36,24 +36,27 @@ func (c *Client) ListProfiles(ctx context.Context) (command.ProfilesData, error)
 	return command.ProfilesData{Active: resp.Active, Profiles: resp.Profiles}, nil
 }
 
-func (c *Client) Switch(ctx context.Context, name string) error {
-	body := switchBody{Profile: name}
+func (c *Client) Switch(ctx context.Context, name string, interrupt command.Interrupt) error {
+	body := switchBody{Profile: name, Force: interrupt == command.InterruptAlways}
 	_, err := jsonhttp.Request[struct{}, switchBody](ctx, c.cfg, jsonhttp.RequestConfig[switchBody]{
 		Method: http.MethodPost,
 		Path:   "/switch",
 		Body:   &body,
 		OnStatus: map[int]func(*http.Response) error{
-			http.StatusBadRequest: func(r *http.Response) error {
-				var e errorResp
-				if jsonErr := json.NewDecoder(r.Body).Decode(&e); jsonErr == nil && e.Error != "" {
-					return fmt.Errorf("%s", e.Error)
-				}
-				return fmt.Errorf("bad request")
-			},
-			http.StatusAccepted: func(_ *http.Response) error { return nil },
+			http.StatusBadRequest: decodeError,
+			http.StatusConflict:   decodeError,
+			http.StatusAccepted:   func(_ *http.Response) error { return nil },
 		},
 	})
 	return err
+}
+
+func decodeError(r *http.Response) error {
+	var e errorResp
+	if jsonErr := json.NewDecoder(r.Body).Decode(&e); jsonErr == nil && e.Error != "" {
+		return fmt.Errorf("%s", e.Error)
+	}
+	return fmt.Errorf("request rejected with status %d", r.StatusCode)
 }
 
 func (c *Client) Status(ctx context.Context) (command.StatusData, error) {
@@ -68,5 +71,15 @@ func (c *Client) Status(ctx context.Context) (command.StatusData, error) {
 	if err != nil {
 		return command.StatusData{}, err
 	}
-	return command.StatusData{Active: resp.Active, Version: resp.Version}, nil
+	return command.StatusData{
+		Active:        resp.Active,
+		Version:       resp.Version,
+		Online:        resp.Online,
+		WorldActive:   resp.WorldActive,
+		World:         resp.World,
+		System:        resp.System,
+		SystemVersion: resp.SystemVersion,
+		Users:         resp.Users,
+		UptimeMS:      resp.UptimeMS,
+	}, nil
 }

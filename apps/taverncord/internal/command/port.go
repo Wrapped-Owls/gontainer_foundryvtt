@@ -18,9 +18,16 @@ type Responder interface {
 	Edit(ctx context.Context, content string) error
 }
 
+type Interrupt string
+
+const (
+	InterruptWhenIdle Interrupt = "when-idle" // the manager refuses with 409 while players are online
+	InterruptAlways   Interrupt = "always"
+)
+
 type FoundryClient interface {
 	ListProfiles(ctx context.Context) (ProfilesData, error)
-	Switch(ctx context.Context, name string) error
+	Switch(ctx context.Context, name string, interrupt Interrupt) error
 	Status(ctx context.Context) (StatusData, error)
 }
 
@@ -30,6 +37,13 @@ type ProfilesData struct {
 }
 
 type StatusData struct {
-	Active  string
-	Version string
+	Active        string
+	Version       string
+	Online        bool
+	WorldActive   bool
+	World         string
+	System        string
+	SystemVersion string
+	Users         int
+	UptimeMS      int64
 }

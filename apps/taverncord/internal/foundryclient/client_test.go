@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
+
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/command"
 )
 
 func TestListProfiles(t *testing.T) {
@@ -45,8 +48,26 @@ func TestSwitch_accepted(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if err := New(srv.URL).Switch(context.Background(), "bob"); err != nil {
+	if err := New(
+		srv.URL,
+	).Switch(context.Background(), "bob", command.InterruptWhenIdle); err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSwitch_conflictOnlineUsers(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(errorResp{Error: "2 user(s) currently online"})
+	}))
+	defer srv.Close()
+
+	err := New(srv.URL).Switch(context.Background(), "bob", command.InterruptWhenIdle)
+	if err == nil {
+		t.Fatal("expected error when users are online")
+	}
+	if !strings.Contains(err.Error(), "online") {
+		t.Errorf("expected online message, got %q", err.Error())
 	}
 }
 
@@ -57,7 +78,7 @@ func TestSwitch_badRequest(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	err := New(srv.URL).Switch(context.Background(), "nobody")
+	err := New(srv.URL).Switch(context.Background(), "nobody", command.InterruptWhenIdle)
 	if err == nil {
 		t.Fatal("expected error for bad request")
 	}
@@ -65,7 +86,17 @@ func TestSwitch_badRequest(t *testing.T) {
 
 func TestStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(statusResp{Active: "alice", Version: "14.0.0"}) //nolint:errcheck
+		json.NewEncoder(w).Encode(statusResp{
+			Active:        "alice",
+			Version:       "13.351",
+			Online:        true,
+			WorldActive:   true,
+			World:         "my-world",
+			System:        "projectfu",
+			SystemVersion: "4.16.1",
+			Users:         2,
+			UptimeMS:      6230770,
+		})
 	}))
 	defer srv.Close()
 
@@ -73,7 +104,11 @@ func TestStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if status.Active != "alice" || status.Version != "14.0.0" {
+	if status.Active != "alice" || status.Version != "13.351" {
 		t.Errorf("unexpected data: %+v", status)
+	}
+	if !status.Online || status.World != "my-world" || status.Users != 2 ||
+		status.SystemVersion != "4.16.1" {
+		t.Errorf("expected live status fields, got %+v", status)
 	}
 }
