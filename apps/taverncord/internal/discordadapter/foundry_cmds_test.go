@@ -24,6 +24,10 @@ func (s *stubFoundryClient) Switch(_ context.Context, _ string, _ bool) error { 
 func (s *stubFoundryClient) Status(_ context.Context) (command.StatusData, error) {
 	return s.status, nil
 }
+func (s *stubFoundryClient) Versions(_ context.Context) (command.VersionsData, error) {
+	return command.VersionsData{}, nil
+}
+func (s *stubFoundryClient) Download(_ context.Context, _, _ string) error { return nil }
 
 func makeProfileCmds(client command.FoundryClient) *command.ProfileCommands {
 	return command.New(client, slog.Default())

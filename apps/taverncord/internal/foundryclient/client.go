@@ -67,6 +67,39 @@ func decodeError(r *http.Response) error {
 	return fmt.Errorf("request rejected with status %d", r.StatusCode)
 }
 
+// Versions calls GET /versions and returns the installed versions and the active one.
+func (c *Client) Versions(ctx context.Context) (command.VersionsData, error) {
+	resp, err := jsonhttp.Request[versionsResp, struct{}](
+		ctx,
+		c.cfg,
+		jsonhttp.RequestConfig[struct{}]{
+			Method: http.MethodGet,
+			Path:   "/versions",
+		},
+	)
+	if err != nil {
+		return command.VersionsData{}, err
+	}
+	return command.VersionsData{Active: resp.Active, Installed: resp.Installed}, nil
+}
+
+// Download calls POST /versions/download to acquire a Foundry version. It returns
+// the dashboard error message verbatim when the download cannot be satisfied.
+func (c *Client) Download(ctx context.Context, version, url string) error {
+	body := downloadBody{Version: version, URL: url}
+	_, err := jsonhttp.Request[struct{}, downloadBody](ctx, c.cfg, jsonhttp.RequestConfig[downloadBody]{
+		Method: http.MethodPost,
+		Path:   "/versions/download",
+		Body:   &body,
+		OnStatus: map[int]func(*http.Response) error{
+			http.StatusBadRequest: decodeError,
+			http.StatusBadGateway: decodeError,
+			http.StatusAccepted:   func(_ *http.Response) error { return nil },
+		},
+	})
+	return err
+}
+
 // Status calls GET /status and returns the active profile name and Foundry version.
 func (c *Client) Status(ctx context.Context) (command.StatusData, error) {
 	resp, err := jsonhttp.Request[statusResp, struct{}](

@@ -36,7 +36,9 @@ func main() {
 		Use(cfg.Discord.GMRoleID).
 		Add(discordadapter.ListCmd(cmds)).
 		Add(discordadapter.SwitchCmd(cmds)).
-		Add(discordadapter.StatusCmd(cmds))
+		Add(discordadapter.StatusCmd(cmds)).
+		Add(discordadapter.VersionsCmd(cmds)).
+		Add(discordadapter.DownloadCmd(cmds))
 
 	adapter, err := discordadapter.New(cfg, router, logger)
 	if err != nil {

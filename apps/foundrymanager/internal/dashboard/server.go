@@ -24,6 +24,7 @@ func Start(
 	addr string,
 	profiles []profile.Profile,
 	sw Switcher,
+	vm VersionManager,
 ) <-chan error {
 	refs := make([]profileRef, len(profiles))
 	for i, p := range profiles {
@@ -31,7 +32,7 @@ func Start(
 	}
 
 	mux := http.NewServeMux()
-	registerHandlers(mux, refs, sw, logger)
+	registerHandlers(mux, refs, sw, vm, logger)
 
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
 	errCh := make(chan error, 1)

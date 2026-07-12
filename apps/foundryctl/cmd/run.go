@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundryctl/internal/activate"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundryctl/internal/versions"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/procloop"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
@@ -35,6 +36,7 @@ func Run(_ []string, logger *slog.Logger) int {
 		initialState,
 		initialActive,
 		&appActivator{base: state, logger: logger},
+		versions.New(state.App.Paths, state.App.Install, logger),
 		state.App.Manager,
 		state.App.Backoff,
 		logger,

@@ -15,6 +15,12 @@ type Switcher interface {
 	FoundryStatus(ctx context.Context) (foundrystatus.Status, error)
 }
 
+// VersionManager lists and acquires Foundry installs for the versions endpoints.
+type VersionManager interface {
+	Installed(ctx context.Context) ([]string, error)
+	Download(ctx context.Context, version, url string) error
+}
+
 type profileRef struct {
 	Name  string `json:"name"`
 	Label string `json:"label"`
@@ -28,6 +34,16 @@ type profilesResponse struct {
 type switchBody struct {
 	Profile string `json:"profile"`
 	Force   bool   `json:"force"`
+}
+
+type versionsResponse struct {
+	Active    string   `json:"active"`
+	Installed []string `json:"installed"`
+}
+
+type downloadBody struct {
+	Version string `json:"version"`
+	URL     string `json:"url"`
 }
 
 type statusResponse struct {

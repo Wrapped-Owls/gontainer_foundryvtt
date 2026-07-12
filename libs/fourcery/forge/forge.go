@@ -39,6 +39,12 @@ func (f *Forge) Resolve(ctx context.Context, desired string) (Plan, error) {
 	return plan, nil
 }
 
+// Installed returns the Foundry installs already present under the install
+// root, newest version first. It performs no acquisition.
+func (f *Forge) Installed() ([]Candidate, error) {
+	return scanCandidates(f.installRoot)
+}
+
 // Acquire executes the plan: reuses an existing candidate or stages
 // the chosen source into a versioned subdirectory.
 func (f *Forge) Acquire(ctx context.Context, p Plan) (Install, error) {

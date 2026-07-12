@@ -21,12 +21,20 @@ type FoundryClient interface {
 	ListProfiles(ctx context.Context) (ProfilesData, error)
 	Switch(ctx context.Context, name string, force bool) error
 	Status(ctx context.Context) (StatusData, error)
+	Versions(ctx context.Context) (VersionsData, error)
+	Download(ctx context.Context, version, url string) error
 }
 
 // ProfilesData is the response shape of GET /profiles.
 type ProfilesData struct {
 	Active   string
 	Profiles []profile.Profile
+}
+
+// VersionsData is the response shape of GET /versions.
+type VersionsData struct {
+	Active    string
+	Installed []string
 }
 
 // StatusData is the response shape of GET /status: the active profile plus the

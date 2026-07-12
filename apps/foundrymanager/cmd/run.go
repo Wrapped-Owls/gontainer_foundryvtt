@@ -1,8 +1,8 @@
-// Package cmd contains the foundrymanager subcommand implementations.
 package cmd
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os/signal"
 	"syscall"
@@ -29,11 +29,21 @@ func Run(_ []string, logger *slog.Logger) int {
 		procloop.State{},
 		"",
 		&noopActivator{},
+		noopVersions{},
 		cfg,
 		backoff.Config{},
 		logger,
 	)
 	return mgr.Run(ctx)
+}
+
+// noopVersions is used in standalone mode where no Foundry install is managed.
+type noopVersions struct{}
+
+func (noopVersions) Installed(_ context.Context) ([]string, error) { return nil, nil }
+
+func (noopVersions) Download(_ context.Context, _, _ string) error {
+	return errors.New("version download is unavailable in standalone mode")
 }
 
 // noopActivator is used in standalone mode where no Foundry process is managed.

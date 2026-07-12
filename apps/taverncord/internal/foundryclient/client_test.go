@@ -80,6 +80,51 @@ func TestSwitch_badRequest(t *testing.T) {
 	}
 }
 
+func TestVersions(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/versions" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(versionsResp{ //nolint:errcheck
+			Active: "14.361.0", Installed: []string{"14.361.0", "13.351.0"},
+		})
+	}))
+	defer srv.Close()
+
+	data, err := New(srv.URL).Versions(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if data.Active != "14.361.0" || len(data.Installed) != 2 {
+		t.Errorf("unexpected data: %+v", data)
+	}
+}
+
+func TestDownload_accepted(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	defer srv.Close()
+
+	if err := New(srv.URL).Download(context.Background(), "14.361.0", ""); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestDownload_badGatewayRelaysError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		json.NewEncoder(w).Encode(errorResp{Error: "no source for 9.9.9"}) //nolint:errcheck
+	}))
+	defer srv.Close()
+
+	err := New(srv.URL).Download(context.Background(), "9.9.9", "")
+	if err == nil || !strings.Contains(err.Error(), "no source") {
+		t.Errorf("expected relayed error, got %v", err)
+	}
+}
+
 func TestStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(statusResp{ //nolint:errcheck

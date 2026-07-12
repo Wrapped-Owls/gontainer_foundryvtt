@@ -32,6 +32,7 @@ type Runner struct {
 	logger     *slog.Logger
 	ctrl       *controller.SwitchController
 	status     *foundrystatus.Client
+	versions   dashboard.VersionManager
 }
 
 // New creates a Runner ready to run. The dashboard is started internally when
@@ -41,6 +42,7 @@ func New(
 	initial State,
 	initialActive string,
 	activator Activator,
+	versions dashboard.VersionManager,
 	cfg config.Config,
 	backoffCfg backoff.Config,
 	logger *slog.Logger,
@@ -52,6 +54,7 @@ func New(
 	return &Runner{
 		state:      initial,
 		activator:  activator,
+		versions:   versions,
 		cfg:        cfg,
 		backoffCfg: backoffCfg,
 		logger:     logger,
@@ -66,7 +69,9 @@ func (r *Runner) Run(ctx context.Context) int {
 	dashCtx, cancelDash := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	wg.Go(func() {
-		errCh := dashboard.Start(dashCtx, r.logger, r.cfg.DashboardAddr, r.currentProfiles(), r)
+		errCh := dashboard.Start(
+			dashCtx, r.logger, r.cfg.DashboardAddr, r.currentProfiles(), r, r.versions,
+		)
 		if err := <-errCh; err != nil {
 			r.logger.Error("dashboard server stopped unexpectedly", "err", err)
 		}

@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/foundrystatus"
@@ -33,10 +35,31 @@ func (s *stubSwitcher) FoundryStatus(_ context.Context) (foundrystatus.Status, e
 	return s.status, s.statusErr
 }
 
-func serveHandlers(t *testing.T, sw *stubSwitcher) *httptest.Server {
+// stubVersions implements dashboard.VersionManager for testing.
+type stubVersions struct {
+	installed   []string
+	installErr  error
+	downloadErr error
+	lastVersion string
+	lastURL     string
+}
+
+func (v *stubVersions) Installed(_ context.Context) ([]string, error) {
+	return v.installed, v.installErr
+}
+
+func (v *stubVersions) Download(_ context.Context, version, url string) error {
+	v.lastVersion, v.lastURL = version, url
+	return v.downloadErr
+}
+
+func serveHandlers(t *testing.T, sw *stubSwitcher, vm *stubVersions) *httptest.Server {
 	t.Helper()
+	if vm == nil {
+		vm = &stubVersions{}
+	}
 	mux := http.NewServeMux()
-	registerHandlers(mux, nil, sw, slog.New(slog.DiscardHandler))
+	registerHandlers(mux, nil, sw, vm, slog.New(slog.DiscardHandler))
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return srv
@@ -55,7 +78,7 @@ func postSwitch(t *testing.T, srv *httptest.Server, body any) *http.Response {
 
 func TestPostSwitch_accepted(t *testing.T) {
 	sw := &stubSwitcher{statusErr: context.DeadlineExceeded}
-	resp := postSwitch(t, serveHandlers(t, sw), switchBody{Profile: "alice"})
+	resp := postSwitch(t, serveHandlers(t, sw, nil), switchBody{Profile: "alice"})
 	if resp.StatusCode != http.StatusAccepted {
 		t.Errorf("expected 202, got %d", resp.StatusCode)
 	}
@@ -66,7 +89,7 @@ func TestPostSwitch_accepted(t *testing.T) {
 
 func TestPostSwitch_rejectsWhenUsersOnline(t *testing.T) {
 	sw := &stubSwitcher{status: foundrystatus.Status{Active: true, Users: 2}}
-	resp := postSwitch(t, serveHandlers(t, sw), switchBody{Profile: "alice"})
+	resp := postSwitch(t, serveHandlers(t, sw, nil), switchBody{Profile: "alice"})
 	if resp.StatusCode != http.StatusConflict {
 		t.Fatalf("expected 409, got %d", resp.StatusCode)
 	}
@@ -77,7 +100,7 @@ func TestPostSwitch_rejectsWhenUsersOnline(t *testing.T) {
 
 func TestPostSwitch_forceBypassesGuard(t *testing.T) {
 	sw := &stubSwitcher{status: foundrystatus.Status{Active: true, Users: 2}}
-	resp := postSwitch(t, serveHandlers(t, sw), switchBody{Profile: "alice", Force: true})
+	resp := postSwitch(t, serveHandlers(t, sw, nil), switchBody{Profile: "alice", Force: true})
 	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202 with force, got %d", resp.StatusCode)
 	}
@@ -91,7 +114,7 @@ func TestGetStatus_enrichedWhenOnline(t *testing.T) {
 		Active: true, Version: "13.351", World: "my-world", System: "projectfu",
 		SystemVersion: "4.16.1", Users: 3, UptimeMS: 6230770,
 	}}
-	srv := serveHandlers(t, sw)
+	srv := serveHandlers(t, sw, nil)
 	resp, err := srv.Client().Get(srv.URL + "/status")
 	if err != nil {
 		t.Fatalf("get status: %v", err)
@@ -107,9 +130,79 @@ func TestGetStatus_enrichedWhenOnline(t *testing.T) {
 	}
 }
 
+func TestGetVersions_listsInstalled(t *testing.T) {
+	sw := &stubSwitcher{version: "14.361.0"}
+	vm := &stubVersions{installed: []string{"14.361.0", "13.351.0"}}
+	srv := serveHandlers(t, sw, vm)
+	resp, err := srv.Client().Get(srv.URL + "/versions")
+	if err != nil {
+		t.Fatalf("get versions: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	var got versionsResponse
+	if err = json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.Active != "14.361.0" || len(got.Installed) != 2 {
+		t.Errorf("unexpected versions response: %+v", got)
+	}
+}
+
+func TestPostDownload_accepted(t *testing.T) {
+	vm := &stubVersions{}
+	srv := serveHandlers(t, &stubSwitcher{}, vm)
+	b, _ := json.Marshal(downloadBody{Version: "14.361.0", URL: "https://signed"})
+	resp, err := srv.Client().Post(srv.URL+"/versions/download", "application/json", bytes.NewReader(b))
+	if err != nil {
+		t.Fatalf("post download: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d", resp.StatusCode)
+	}
+	if vm.lastVersion != "14.361.0" || vm.lastURL != "https://signed" {
+		t.Errorf("download args not forwarded: %+v", vm)
+	}
+}
+
+func TestPostDownload_missingVersion(t *testing.T) {
+	srv := serveHandlers(t, &stubSwitcher{}, &stubVersions{})
+	b, _ := json.Marshal(downloadBody{})
+	resp, err := srv.Client().Post(srv.URL+"/versions/download", "application/json", bytes.NewReader(b))
+	if err != nil {
+		t.Fatalf("post download: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", resp.StatusCode)
+	}
+}
+
+func TestPostDownload_failureRelaysError(t *testing.T) {
+	vm := &stubVersions{downloadErr: errors.New("no source for 9.9.9")}
+	srv := serveHandlers(t, &stubSwitcher{}, vm)
+	b, _ := json.Marshal(downloadBody{Version: "9.9.9"})
+	resp, err := srv.Client().Post(srv.URL+"/versions/download", "application/json", bytes.NewReader(b))
+	if err != nil {
+		t.Fatalf("post download: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusBadGateway {
+		t.Fatalf("expected 502, got %d", resp.StatusCode)
+	}
+	var got errorResponse
+	if err = json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if !strings.Contains(got.Error, "no source") {
+		t.Errorf("expected relayed error, got %q", got.Error)
+	}
+}
+
 func TestGetStatus_offlineFallsBackToConfigured(t *testing.T) {
 	sw := &stubSwitcher{active: "alice", version: "14.0.0", statusErr: context.DeadlineExceeded}
-	srv := serveHandlers(t, sw)
+	srv := serveHandlers(t, sw, nil)
 	resp, err := srv.Client().Get(srv.URL + "/status")
 	if err != nil {
 		t.Fatalf("get status: %v", err)

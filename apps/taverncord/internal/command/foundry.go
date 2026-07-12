@@ -61,6 +61,42 @@ func (pc *ProfileCommands) Switch(ctx context.Context, r Responder, name string,
 	return r.Edit(ctx, fmt.Sprintf("✅ Switched to **%s** — server is restarting.", name))
 }
 
+// Versions lists the installed Foundry versions and the active one.
+func (pc *ProfileCommands) Versions(ctx context.Context, r Responder) error {
+	data, err := pc.client.Versions(ctx)
+	if err != nil {
+		pc.logger.Error("list versions failed", "err", err)
+		return r.Send(ctx, "Failed to fetch versions from Foundry.", true)
+	}
+	if len(data.Installed) == 0 {
+		return r.Send(ctx, "No Foundry versions installed.", true)
+	}
+
+	var sb strings.Builder
+	sb.WriteString("**Installed Foundry versions**\n")
+	for _, v := range data.Installed {
+		marker := "○"
+		if v == data.Active {
+			marker = "▶"
+		}
+		fmt.Fprintf(&sb, "%s `%s`\n", marker, v)
+	}
+	return r.Send(ctx, sb.String(), true)
+}
+
+// Download acquires a Foundry version through the manager. It acknowledges
+// immediately, then edits the reply once the (possibly slow) download resolves.
+func (pc *ProfileCommands) Download(ctx context.Context, r Responder, version, url string) error {
+	if err := r.Send(ctx, fmt.Sprintf("⏳ Downloading Foundry **%s**…", version), true); err != nil {
+		return err
+	}
+	if err := pc.client.Download(ctx, version, url); err != nil {
+		pc.logger.Error("download version failed", "version", version, "err", err)
+		return r.Edit(ctx, fmt.Sprintf("❌ Download failed: %s", err.Error()))
+	}
+	return r.Edit(ctx, fmt.Sprintf("✅ Foundry **%s** is ready to use.", version))
+}
+
 // Status fetches the active profile and the live Foundry server status and sends
 // a formatted summary to the responder.
 func (pc *ProfileCommands) Status(ctx context.Context, r Responder) error {
