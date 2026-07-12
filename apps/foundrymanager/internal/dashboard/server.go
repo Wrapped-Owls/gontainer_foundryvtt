@@ -23,9 +23,11 @@ func Start(
 	sw Switcher,
 	vm VersionManager,
 	ps ProfileStore,
+	lr LogReader,
 ) <-chan error {
 	mux := http.NewServeMux()
 	registerHandlers(mux, sw, vm, ps, logger)
+	registerLogHandlers(mux, lr, logger)
 
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
 	errCh := make(chan error, 1)

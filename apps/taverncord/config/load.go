@@ -17,5 +17,6 @@ func LoadFromEnv(c *Config) error {
 		confloader.BindField(&c.Discord.GuildID, envDiscordGuildID, nil),
 		confloader.BindField(&c.Discord.GMRoleID, envDiscordGMRoleID, nil),
 		confloader.BindField(&c.Foundry.DashboardURL, envFoundryDashboardURL, nil),
+		confloader.BindField(&c.Foundry.AlertChannelID, envFoundryAlertChannel, nil),
 	)
 }

@@ -59,6 +59,15 @@ func (a *Adapter) Open() error {
 	return nil
 }
 
+// SendMessage posts content to a Discord channel. Used by the alert poller to
+// surface Foundry crash and error events.
+func (a *Adapter) SendMessage(channelID, content string) error {
+	if _, err := a.session.ChannelMessageSend(channelID, content); err != nil {
+		return fmt.Errorf("send message: %w", err)
+	}
+	return nil
+}
+
 // Close deletes registered commands and closes the Discord session.
 func (a *Adapter) Close() error {
 	for _, cmd := range a.registered {

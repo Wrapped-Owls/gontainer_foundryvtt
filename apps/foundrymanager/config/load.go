@@ -1,6 +1,10 @@
 package config
 
-import "github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/confloader"
+import (
+	"strings"
+
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/confloader"
+)
 
 const DefaultFileName = "foundrymanager.json"
 
@@ -14,5 +18,17 @@ func LoadFromEnv(c *Config) error {
 	return confloader.BindEnv(
 		confloader.BindField(&c.ProfilesFile, envProfilesFile, nil),
 		confloader.BindField(&c.DashboardAddr, envDashboardAddr, nil),
+		confloader.BindField(&c.LogAlertPatterns, envLogPatterns, parsePatterns),
 	)
+}
+
+// parsePatterns splits a comma-separated list into trimmed, non-empty patterns.
+func parsePatterns(v string) ([]string, error) {
+	var out []string
+	for _, p := range strings.Split(v, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out, nil
 }

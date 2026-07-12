@@ -12,6 +12,9 @@ type DiscordConfig struct {
 // FoundryConfig holds connection settings for the foundrymanager dashboard.
 type FoundryConfig struct {
 	DashboardURL string
+	// AlertChannelID, when set, enables posting Foundry crash/error events to
+	// that Discord channel.
+	AlertChannelID string
 }
 
 // Config is the top-level configuration container.

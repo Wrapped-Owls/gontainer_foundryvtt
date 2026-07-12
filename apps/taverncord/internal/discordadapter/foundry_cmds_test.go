@@ -38,6 +38,12 @@ func (s *stubFoundryClient) UpdateProfile(_ context.Context, _ string, _ command
 	return nil
 }
 func (s *stubFoundryClient) DeleteProfile(_ context.Context, _ string) error { return nil }
+func (s *stubFoundryClient) Logs(_ context.Context, _ int) (command.LogsData, error) {
+	return command.LogsData{}, nil
+}
+func (s *stubFoundryClient) Events(_ context.Context, _ int) (command.EventsData, error) {
+	return command.EventsData{}, nil
+}
 
 func makeProfileCmds(client command.FoundryClient) *command.ProfileCommands {
 	return command.New(client, slog.Default())

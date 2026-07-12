@@ -1,8 +1,10 @@
-// Package foundryclient implements command.FoundryClient via HTTP calls to the
-// foundrymanager dashboard API.
 package foundryclient
 
-import "github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
+import (
+	"time"
+
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
+)
 
 type profilesResp struct {
 	Active   string            `json:"active"`
@@ -44,6 +46,21 @@ type profileDetailResp struct {
 	World        string `json:"world"`
 	ManifestPath string `json:"manifestPath"`
 	HasAdminKey  bool   `json:"hasAdminKey"`
+}
+
+type logsResp struct {
+	Lines []string `json:"lines"`
+}
+
+type eventItemResp struct {
+	Time    time.Time `json:"time"`
+	Kind    string    `json:"kind"`
+	Message string    `json:"message"`
+}
+
+type eventsResp struct {
+	Events []eventItemResp `json:"events"`
+	Next   int             `json:"next"`
 }
 
 type profileBody struct {

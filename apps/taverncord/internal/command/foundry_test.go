@@ -16,6 +16,8 @@ type stubClient struct {
 	status      StatusData
 	versions    VersionsData
 	profileInfo ProfileInfo
+	logs        LogsData
+	events      EventsData
 	switchErr   error
 	listErr     error
 	statusErr   error
@@ -25,9 +27,12 @@ type stubClient struct {
 	createErr   error
 	updateErr   error
 	deleteErr   error
+	logsErr     error
+	eventsErr   error
 	gotForce    bool
 	gotVersion  string
 	gotURL      string
+	gotTail     int
 	lastName    string
 	lastInput   ProfileInput
 }
@@ -63,6 +68,13 @@ func (s *stubClient) UpdateProfile(_ context.Context, name string, p ProfileInpu
 func (s *stubClient) DeleteProfile(_ context.Context, name string) error {
 	s.lastName = name
 	return s.deleteErr
+}
+func (s *stubClient) Logs(_ context.Context, tail int) (LogsData, error) {
+	s.gotTail = tail
+	return s.logs, s.logsErr
+}
+func (s *stubClient) Events(_ context.Context, _ int) (EventsData, error) {
+	return s.events, s.eventsErr
 }
 
 // stubResponder captures Send and Edit calls for assertion.
@@ -205,6 +217,30 @@ func TestDownload_failureRelaysError(t *testing.T) {
 	}
 	if !strings.Contains(resp.edited, "❌") || !strings.Contains(resp.edited, "no source") {
 		t.Errorf("expected relayed error, got %q", resp.edited)
+	}
+}
+
+func TestLogs_showsLines(t *testing.T) {
+	client := &stubClient{logs: LogsData{Lines: []string{"line one", "line two"}}}
+	resp := &stubResponder{}
+	if err := makeCommands(client).Logs(context.Background(), resp, 20); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.gotTail != 20 {
+		t.Errorf("expected tail 20, got %d", client.gotTail)
+	}
+	if !strings.Contains(resp.content, "line one") || !strings.Contains(resp.content, "```") {
+		t.Errorf("expected code-block with lines, got %q", resp.content)
+	}
+}
+
+func TestLogs_empty(t *testing.T) {
+	resp := &stubResponder{}
+	if err := makeCommands(&stubClient{}).Logs(context.Background(), resp, 20); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(resp.content, "No logs") {
+		t.Errorf("expected empty message, got %q", resp.content)
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/controller"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/dashboard"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/foundrystatus"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/logstore"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 )
@@ -33,6 +34,7 @@ type Runner struct {
 	ctrl       *controller.SwitchController
 	status     *foundrystatus.Client
 	versions   dashboard.VersionManager
+	logs       *logstore.Store
 }
 
 // New creates a Runner ready to run. The dashboard is started internally when
@@ -60,6 +62,7 @@ func New(
 		logger:     logger,
 		ctrl:       ctrl,
 		status:     foundrystatus.NewClient(&http.Client{Timeout: statusTimeout}),
+		logs:       logstore.New(logstore.DefaultBufferLines, logstore.DefaultEventBuffer, cfg.LogAlertPatterns),
 	}
 }
 
@@ -69,7 +72,7 @@ func (r *Runner) Run(ctx context.Context) int {
 	dashCtx, cancelDash := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	wg.Go(func() {
-		errCh := dashboard.Start(dashCtx, r.logger, r.cfg.DashboardAddr, r, r.versions, r)
+		errCh := dashboard.Start(dashCtx, r.logger, r.cfg.DashboardAddr, r, r.versions, r, r)
 		if err := <-errCh; err != nil {
 			r.logger.Error("dashboard server stopped unexpectedly", "err", err)
 		}
@@ -117,6 +120,12 @@ func (r *Runner) FoundryStatus(ctx context.Context) (foundrystatus.Status, error
 	// Upgrade path: thread Runtime.RoutePrefix into procloop.State if needed.
 	return r.status.Fetch(ctx, fmt.Sprintf("http://127.0.0.1:%d", port))
 }
+
+// Logs returns the last n captured Foundry log lines.
+func (r *Runner) Logs(n int) []string { return r.logs.Tail(n) }
+
+// Events returns detected error/crash events at or after cursor and the next cursor.
+func (r *Runner) Events(cursor int) ([]logstore.Event, int) { return r.logs.EventsSince(cursor) }
 
 func (r *Runner) currentProfiles() []profile.Profile {
 	r.mu.RLock()

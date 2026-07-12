@@ -108,6 +108,32 @@ func (c *downloadCmd) Handle(ctx context.Context, opts OptionMap, r command.Resp
 	return c.cmds.Download(ctx, r, opts.String("version"), opts.String("url"))
 }
 
+// logsCmd handles /foundry logs.
+type logsCmd struct{ cmds *command.ProfileCommands }
+
+func (c *logsCmd) Spec() *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionSubCommand,
+		Name:        "logs",
+		Description: "Show the most recent Foundry log lines",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionInteger,
+				Name:        "tail",
+				Description: "How many lines to show (default 20)",
+			},
+		},
+	}
+}
+
+func (c *logsCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
+	tail := opts.Int("tail")
+	if tail == 0 {
+		tail = 20
+	}
+	return c.cmds.Logs(ctx, r, tail)
+}
+
 // Constructor functions — used in main.go composition root.
 
 // ListCmd returns a SubCommand for /foundry list.
@@ -124,3 +150,6 @@ func VersionsCmd(cmds *command.ProfileCommands) SubCommand { return &versionsCmd
 
 // DownloadCmd returns a SubCommand for /foundry download.
 func DownloadCmd(cmds *command.ProfileCommands) SubCommand { return &downloadCmd{cmds: cmds} }
+
+// LogsCmd returns a SubCommand for /foundry logs.
+func LogsCmd(cmds *command.ProfileCommands) SubCommand { return &logsCmd{cmds: cmds} }

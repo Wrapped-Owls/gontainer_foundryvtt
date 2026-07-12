@@ -38,6 +38,7 @@ func (r *Runner) restartLoop(ctx, profileCtx context.Context) (int, bool) {
 		code, err := procspawn.Run(profileCtx, r.buildSpec())
 		if err != nil {
 			r.logger.Error("child failed to start", "err", err)
+			r.logs.RecordCrash(code)
 			return 1, false
 		}
 		if ctx.Err() != nil {
@@ -48,6 +49,9 @@ func (r *Runner) restartLoop(ctx, profileCtx context.Context) (int, bool) {
 			return code, true
 		}
 		r.logger.Info("child exited", "exit_code", code)
+		if code != 0 {
+			r.logs.RecordCrash(code)
+		}
 		dec, decErr := mgr.OnFailure(code)
 		if decErr != nil {
 			r.logger.Error("backoff state failed", "err", decErr)

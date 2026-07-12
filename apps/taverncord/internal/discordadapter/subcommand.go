@@ -27,6 +27,14 @@ func (m OptionMap) Bool(key string) bool {
 	return false
 }
 
+// Int returns the integer value of the named option, or 0 if absent.
+func (m OptionMap) Int(key string) int {
+	if opt, ok := m[key]; ok {
+		return int(opt.IntValue())
+	}
+	return 0
+}
+
 // newOptionMap builds an OptionMap from a slice of interaction data options.
 func newOptionMap(opts []*discordgo.ApplicationCommandInteractionDataOption) OptionMap {
 	m := make(OptionMap, len(opts))

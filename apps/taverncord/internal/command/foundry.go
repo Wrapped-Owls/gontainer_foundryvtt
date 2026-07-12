@@ -61,6 +61,27 @@ func (pc *ProfileCommands) Switch(ctx context.Context, r Responder, name string,
 	return r.Edit(ctx, fmt.Sprintf("✅ Switched to **%s** — server is restarting.", name))
 }
 
+// discordMessageLimit is Discord's 2000-character message cap; we stay well
+// under it to leave room for the code-fence wrapper.
+const logsCharBudget = 1800
+
+// Logs fetches the most recent Foundry log lines and sends them in a code block.
+func (pc *ProfileCommands) Logs(ctx context.Context, r Responder, tail int) error {
+	data, err := pc.client.Logs(ctx, tail)
+	if err != nil {
+		pc.logger.Error("fetch logs failed", "err", err)
+		return r.Send(ctx, "Failed to fetch logs from Foundry.", true)
+	}
+	if len(data.Lines) == 0 {
+		return r.Send(ctx, "No logs captured yet.", true)
+	}
+	body := strings.Join(data.Lines, "\n")
+	if len(body) > logsCharBudget {
+		body = "…" + body[len(body)-logsCharBudget:]
+	}
+	return r.Send(ctx, "```\n"+body+"\n```", true)
+}
+
 // Versions lists the installed Foundry versions and the active one.
 func (pc *ProfileCommands) Versions(ctx context.Context, r Responder) error {
 	data, err := pc.client.Versions(ctx)

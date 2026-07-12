@@ -1,8 +1,8 @@
-// Package command contains the bot's core logic, free of any Discord library dependency.
 package command
 
 import (
 	"context"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
@@ -27,6 +27,27 @@ type FoundryClient interface {
 	CreateProfile(ctx context.Context, p ProfileInput) error
 	UpdateProfile(ctx context.Context, name string, p ProfileInput) error
 	DeleteProfile(ctx context.Context, name string) error
+	Logs(ctx context.Context, tail int) (LogsData, error)
+	Events(ctx context.Context, since int) (EventsData, error)
+}
+
+// LogsData is the response shape of GET /logs.
+type LogsData struct {
+	Lines []string
+}
+
+// EventsData is the response shape of GET /events: detected error/crash events
+// plus the cursor to resume polling from.
+type EventsData struct {
+	Events []EventItem
+	Next   int
+}
+
+// EventItem is a single detected log event.
+type EventItem struct {
+	Time    time.Time
+	Kind    string
+	Message string
 }
 
 // ProfileInfo is the non-secret view of a profile returned by GET /profiles/{name}.

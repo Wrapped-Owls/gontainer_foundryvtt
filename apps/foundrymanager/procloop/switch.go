@@ -3,6 +3,8 @@ package procloop
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
@@ -52,8 +54,10 @@ func (r *Runner) buildSpec() procspawn.Spec {
 	r.mu.RUnlock()
 	mainScript := filepath.Join(s.InstallRoot, s.MainScript)
 	return procspawn.Spec{
-		Path: s.JSRuntime.Path,
-		Args: BuildArgs(s.JSRuntime.Kind, mainScript, s.DataPath, s.Port),
-		Dir:  s.InstallRoot,
+		Path:   s.JSRuntime.Path,
+		Args:   BuildArgs(s.JSRuntime.Kind, mainScript, s.DataPath, s.Port),
+		Dir:    s.InstallRoot,
+		Stdout: io.MultiWriter(os.Stdout, r.logs),
+		Stderr: io.MultiWriter(os.Stderr, r.logs),
 	}
 }

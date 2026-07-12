@@ -1,20 +1,25 @@
-// Package main is the composition root for the taverncord bot.
 package main
 
 import (
 	"context"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/config"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/alerts"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/command"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/discordadapter"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/foundryclient"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/colorlog"
 )
 
-const exitUsage = 1
+const (
+	exitUsage    = 1
+	alertPollGap = 30 * time.Second
+)
 
 func main() {
 	logger := colorlog.New("taverncord", colorlog.LevelFromEnv())
@@ -42,7 +47,8 @@ func main() {
 		Add(discordadapter.ProfileShowCmd(cmds)).
 		Add(discordadapter.ProfileCreateCmd(cmds)).
 		Add(discordadapter.ProfileEditCmd(cmds)).
-		Add(discordadapter.ProfileDeleteCmd(cmds))
+		Add(discordadapter.ProfileDeleteCmd(cmds)).
+		Add(discordadapter.LogsCmd(cmds))
 
 	adapter, err := discordadapter.New(cfg, router, logger)
 	if err != nil {
@@ -60,7 +66,20 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+
+	var wg sync.WaitGroup
+	if cfg.Foundry.AlertChannelID != "" {
+		poller := alerts.New(fc, adapter, cfg.Foundry.AlertChannelID, alertPollGap, logger)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			poller.Run(ctx)
+		}()
+		logger.Info("crash alert poller enabled", "channel", cfg.Foundry.AlertChannelID)
+	}
+
 	<-ctx.Done()
+	wg.Wait()
 
 	logger.Info("shutting down")
 }

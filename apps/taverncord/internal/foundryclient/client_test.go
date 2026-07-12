@@ -125,6 +125,47 @@ func TestDownload_badGatewayRelaysError(t *testing.T) {
 	}
 }
 
+func TestLogs(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/logs" || r.URL.Query().Get("tail") != "10" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(logsResp{Lines: []string{"a", "b"}}) //nolint:errcheck
+	}))
+	defer srv.Close()
+
+	data, err := New(srv.URL).Logs(context.Background(), 10)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(data.Lines) != 2 {
+		t.Errorf("expected 2 lines, got %+v", data.Lines)
+	}
+}
+
+func TestEvents(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("since") != "5" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		json.NewEncoder(w).Encode(eventsResp{ //nolint:errcheck
+			Events: []eventItemResp{{Kind: "crash", Message: "boom"}},
+			Next:   6,
+		})
+	}))
+	defer srv.Close()
+
+	data, err := New(srv.URL).Events(context.Background(), 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if data.Next != 6 || len(data.Events) != 1 || data.Events[0].Kind != "crash" {
+		t.Errorf("unexpected events data: %+v", data)
+	}
+}
+
 func TestStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(statusResp{ //nolint:errcheck
