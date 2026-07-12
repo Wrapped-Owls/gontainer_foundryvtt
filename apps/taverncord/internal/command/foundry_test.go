@@ -120,6 +120,24 @@ func TestList_marksActiveProfile(t *testing.T) {
 	}
 }
 
+func TestList_showsVersionAndWorld(t *testing.T) {
+	client := &stubClient{profiles: ProfilesData{
+		Active: "alice",
+		Profiles: []profile.Profile{
+			{Name: "alice", Label: "Alice", Version: "14.0.0", World: "avalon"},
+		},
+	}}
+	resp := &stubResponder{}
+	if err := makeCommands(client).List(context.Background(), resp); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{"14.0.0", "avalon"} {
+		if !strings.Contains(resp.content, want) {
+			t.Errorf("expected %q in list, got %q", want, resp.content)
+		}
+	}
+}
+
 func TestList_clientError(t *testing.T) {
 	client := &stubClient{listErr: errors.New("connection refused")}
 	resp := &stubResponder{}

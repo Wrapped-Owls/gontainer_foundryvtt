@@ -48,22 +48,6 @@ func profileInput(opts OptionMap, name string) command.ProfileInput {
 	}
 }
 
-// profileShowCmd handles /foundry profile-show.
-type profileShowCmd struct{ cmds *command.ProfileCommands }
-
-func (c *profileShowCmd) Spec() *discordgo.ApplicationCommandOption {
-	return &discordgo.ApplicationCommandOption{
-		Type:        discordgo.ApplicationCommandOptionSubCommand,
-		Name:        "profile-show",
-		Description: "Show a profile's configuration",
-		Options:     []*discordgo.ApplicationCommandOption{nameOption("Profile name")},
-	}
-}
-
-func (c *profileShowCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
-	return c.cmds.ShowProfile(ctx, r, opts.String("name"))
-}
-
 // profileEditCmd handles /foundry profile-edit.
 type profileEditCmd struct{ cmds *command.ProfileCommands }
 
@@ -83,9 +67,6 @@ func (c *profileEditCmd) Handle(ctx context.Context, opts OptionMap, r command.R
 	name := opts.String("name")
 	return c.cmds.EditProfile(ctx, r, name, profileInput(opts, name))
 }
-
-// ProfileShowCmd returns a SubCommand for /foundry profile-show.
-func ProfileShowCmd(cmds *command.ProfileCommands) SubCommand { return &profileShowCmd{cmds: cmds} }
 
 // ProfileEditCmd returns a SubCommand for /foundry profile-edit.
 func ProfileEditCmd(cmds *command.ProfileCommands) SubCommand { return &profileEditCmd{cmds: cmds} }

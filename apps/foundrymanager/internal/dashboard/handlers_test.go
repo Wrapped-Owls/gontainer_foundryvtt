@@ -266,6 +266,31 @@ func TestGetStatus_offlineFallsBackToConfigured(t *testing.T) {
 	}
 }
 
+func TestListProfiles_includesVersionAndWorldNoSecrets(t *testing.T) {
+	ps := &stubProfiles{profiles: []profile.Profile{
+		{Name: "alice", Label: "Alice", Version: "14.0.0", World: "avalon", AdminKey: "s3cret"},
+	}}
+	srv := serveHandlers(t, &stubSwitcher{active: "alice"}, nil, ps)
+	resp, err := srv.Client().Get(srv.URL + "/profiles")
+	if err != nil {
+		t.Fatalf("list profiles: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, _ := io.ReadAll(resp.Body)
+	if strings.Contains(string(body), "s3cret") {
+		t.Errorf("admin key leaked in list: %s", body)
+	}
+	var got profilesResponse
+	if err = json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.Profiles) != 1 ||
+		got.Profiles[0].Version != "14.0.0" || got.Profiles[0].World != "avalon" {
+		t.Errorf("expected version and world in list, got %+v", got.Profiles)
+	}
+}
+
 func TestGetProfile_redactsSecrets(t *testing.T) {
 	ps := &stubProfiles{getOK: true, getProfile: profile.Profile{
 		Name: "alice", DataPath: "/d", AdminKey: "s3cret", World: "w",

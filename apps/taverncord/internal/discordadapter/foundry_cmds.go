@@ -7,6 +7,9 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/command"
 )
 
+// optionName is the shared slash-option key for a profile name.
+const optionName = "name"
+
 // listCmd handles /foundry list.
 type listCmd struct{ cmds *command.ProfileCommands }
 
@@ -14,11 +17,21 @@ func (c *listCmd) Spec() *discordgo.ApplicationCommandOption {
 	return &discordgo.ApplicationCommandOption{
 		Type:        discordgo.ApplicationCommandOptionSubCommand,
 		Name:        "list",
-		Description: "List all available Foundry VTT profiles",
+		Description: "List Foundry VTT profiles, or show one when a name is given",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        optionName,
+				Description: "Show this profile's full configuration",
+			},
+		},
 	}
 }
 
-func (c *listCmd) Handle(ctx context.Context, _ OptionMap, r command.Responder) error {
+func (c *listCmd) Handle(ctx context.Context, opts OptionMap, r command.Responder) error {
+	if name := opts.String(optionName); name != "" {
+		return c.cmds.ShowProfile(ctx, r, name)
+	}
 	return c.cmds.List(ctx, r)
 }
 

@@ -7,14 +7,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/command"
 )
 
 // stubFoundryClient implements command.FoundryClient for testing.
 type stubFoundryClient struct {
-	profiles  command.ProfilesData
-	status    command.StatusData
-	switchErr error
+	profiles      command.ProfilesData
+	status        command.StatusData
+	switchErr     error
+	gotGetProfile string
 }
 
 func (s *stubFoundryClient) ListProfiles(_ context.Context) (command.ProfilesData, error) {
@@ -29,8 +31,12 @@ func (s *stubFoundryClient) Versions(_ context.Context) (command.VersionsData, e
 	return command.VersionsData{}, nil
 }
 func (s *stubFoundryClient) Download(_ context.Context, _, _ string) error { return nil }
-func (s *stubFoundryClient) GetProfile(_ context.Context, _ string) (command.ProfileInfo, error) {
-	return command.ProfileInfo{}, nil
+func (s *stubFoundryClient) GetProfile(
+	_ context.Context,
+	name string,
+) (command.ProfileInfo, error) {
+	s.gotGetProfile = name
+	return command.ProfileInfo{Name: name}, nil
 }
 
 func (s *stubFoundryClient) UpdateProfile(
@@ -40,6 +46,7 @@ func (s *stubFoundryClient) UpdateProfile(
 ) error {
 	return nil
 }
+
 func (s *stubFoundryClient) Logs(_ context.Context, _ int) (command.LogsData, error) {
 	return command.LogsData{}, nil
 }
@@ -56,6 +63,37 @@ func TestListCmd_spec(t *testing.T) {
 	spec := ListCmd(makeProfileCmds(&stubFoundryClient{})).Spec()
 	if spec.Name != "list" {
 		t.Errorf("expected name list, got %q", spec.Name)
+	}
+	if len(spec.Options) != 1 || spec.Options[0].Name != optionName || spec.Options[0].Required {
+		t.Errorf("expected an optional name option, got %+v", spec.Options)
+	}
+}
+
+func TestListCmd_withName_showsDetail(t *testing.T) {
+	client := &stubFoundryClient{}
+	resp := &stubResponder{}
+	cmd := ListCmd(makeProfileCmds(client))
+	opts := OptionMap{optionName: {
+		Type:  discordgo.ApplicationCommandOptionString,
+		Value: "alice",
+	}}
+	if err := cmd.Handle(context.Background(), opts, resp); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.gotGetProfile != "alice" {
+		t.Errorf("expected detail lookup for alice, got %q", client.gotGetProfile)
+	}
+}
+
+func TestListCmd_withoutName_listsProfiles(t *testing.T) {
+	client := &stubFoundryClient{profiles: command.ProfilesData{Active: "alice"}}
+	resp := &stubResponder{}
+	cmd := ListCmd(makeProfileCmds(client))
+	if err := cmd.Handle(context.Background(), OptionMap{}, resp); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.gotGetProfile != "" {
+		t.Errorf("expected no detail lookup, got %q", client.gotGetProfile)
 	}
 }
 
