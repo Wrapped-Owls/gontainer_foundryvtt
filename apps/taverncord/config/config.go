@@ -8,7 +8,8 @@ type DiscordConfig struct {
 }
 
 type FoundryConfig struct {
-	DashboardURL string
+	DashboardURL   string
+	AlertChannelID string
 }
 
 type Config struct {
