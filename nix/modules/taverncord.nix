@@ -13,7 +13,7 @@ pkgs.buildGoModule {
   version = "0.0.0";
   src = repoSrc;
 
-  vendorHash = "sha256-+Jp6wWnET6O3w/GG56CNoDc4TlrYXNTo60vs5puPRUc=";
+  vendorHash = "sha256-wzd/RDhOf+dr/R9hNakva6ILao+fzEeka8rhd193oI4=";
 
   overrideModAttrs = _: {
     buildPhase = ''
