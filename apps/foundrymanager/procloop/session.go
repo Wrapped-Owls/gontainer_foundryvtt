@@ -2,6 +2,7 @@ package procloop
 
 import (
 	"context"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/procspawn"
@@ -29,6 +30,7 @@ func (r *Runner) runSession(ctx context.Context) (int, bool) {
 func (r *Runner) restartLoop(ctx, profileCtx context.Context) (int, bool) {
 	mgr := backoff.NewFromConfig(r.backoffCfg)
 	for {
+		startedAt := time.Now()
 		code, err := procspawn.Run(profileCtx, r.buildSpec())
 		if err != nil {
 			r.logger.Error("child failed to start", "err", err)
@@ -46,13 +48,9 @@ func (r *Runner) restartLoop(ctx, profileCtx context.Context) (int, bool) {
 		if code != 0 {
 			r.logs.RecordCrash(code)
 		}
-		dec, decErr := mgr.OnFailure(code)
-		if decErr != nil {
-			r.logger.Error("backoff state failed", "err", decErr)
-			return code, false
-		}
-		switched, earlyExit := r.handleBackoff(ctx, profileCtx, dec)
-		if earlyExit {
+		dec := mgr.OnFailure(code, time.Since(startedAt))
+		switched, shouldStop := r.handleBackoff(ctx, profileCtx, dec)
+		if shouldStop {
 			return code, switched
 		}
 	}
@@ -61,17 +59,18 @@ func (r *Runner) restartLoop(ctx, profileCtx context.Context) (int, bool) {
 func (r *Runner) handleBackoff(
 	ctx, profileCtx context.Context,
 	dec backoff.Decision,
-) (switched, stop bool) {
-	switch dec.Mode {
-	case backoff.ModeKubernetes:
+) (switched, shouldStop bool) {
+	if dec.Mode == backoff.ModeKubernetes {
 		return false, true
-	case backoff.ModeNoCache:
-		<-ctx.Done()
+	}
+	if dec.IsExhausted() {
+		r.logger.Error(
+			"restart budget exhausted; exiting so the container can be recreated",
+			"consecutive_failures", dec.State.ConsecutiveFailures,
+		)
 		return false, true
-	case backoff.ModeBackoff:
-		if dec.Delay == 0 {
-			return false, true
-		}
+	}
+	if dec.Delay > 0 {
 		r.logger.Info(
 			"backoff",
 			"delay", dec.Delay,
@@ -81,6 +80,7 @@ func (r *Runner) handleBackoff(
 			if ctx.Err() != nil {
 				return false, true
 			}
+			r.logger.Info("backoff cut short", "cause", context.Cause(profileCtx))
 			return true, true
 		}
 	}

@@ -2,13 +2,16 @@ package backoff
 
 import (
 	"fmt"
-	"math/rand/v2"
 	"time"
 )
 
 const MaxDelay = 960 * time.Second
 
 const BaseDelay = 10 * time.Second
+
+const HealthyUptime = 60 * time.Second
+
+const MaxConsecutiveFailures = 10
 
 const stateFile = "backoff_state.json"
 
@@ -45,8 +48,12 @@ type Decision struct {
 	StateFile string
 }
 
+func (d Decision) IsExhausted() bool {
+	return d.State.ConsecutiveFailures >= MaxConsecutiveFailures
+}
+
 type Tracker struct {
 	CacheDir         string
 	KubernetesBypass bool
-	Rand             *rand.Rand
+	memFailures      int
 }
