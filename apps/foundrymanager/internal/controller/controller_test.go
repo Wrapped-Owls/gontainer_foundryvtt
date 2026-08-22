@@ -7,15 +7,17 @@ import (
 )
 
 func TestRequestSwitch_cancelsContext(t *testing.T) {
-	ctrl := New()
+	t.Parallel()
+
+	c := New()
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
-	ctrl.SetCancel(cancel)
+	c.SetCancel(cancel)
 
-	ctrl.RequestSwitch("alice")
+	c.RequestSwitch("alice")
 
 	select {
-	case name := <-ctrl.SwitchCh:
+	case name := <-c.SwitchCh:
 		if name != "alice" {
 			t.Errorf("expected alice, got %q", name)
 		}
@@ -31,24 +33,57 @@ func TestRequestSwitch_cancelsContext(t *testing.T) {
 }
 
 func TestRequestSwitch_replacesPending(t *testing.T) {
-	ctrl := New()
+	t.Parallel()
 
-	ctrl.RequestSwitch("alice")
-	ctrl.RequestSwitch("bob")
+	c := New()
 
-	name := <-ctrl.SwitchCh
+	c.RequestSwitch("alice")
+	c.RequestSwitch("bob")
+
+	name := <-c.SwitchCh
 	if name != "bob" {
 		t.Errorf("expected bob (latest), got %q", name)
 	}
 }
 
 func TestActive(t *testing.T) {
-	ctrl := New()
-	if ctrl.Active() != "" {
+	t.Parallel()
+
+	c := New()
+	if c.Active() != "" {
 		t.Error("expected empty initial active")
 	}
-	ctrl.SetActive("alice")
-	if ctrl.Active() != "alice" {
-		t.Errorf("expected alice, got %q", ctrl.Active())
+	c.SetActive("alice")
+	if c.Active() != "alice" {
+		t.Errorf("expected alice, got %q", c.Active())
+	}
+}
+
+func TestRequestRestartCancelsWithoutQueueingASwitch(t *testing.T) {
+	t.Parallel()
+
+	c := New()
+	_, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+	var cause error
+	c.SetCancel(func(err error) { cause = err; cancel(err) })
+
+	c.RequestRestart()
+
+	if !errors.Is(cause, ErrRestart) {
+		t.Fatalf("cancel cause = %v, want %v", cause, ErrRestart)
+	}
+	select {
+	case name := <-c.SwitchCh:
+		t.Fatalf("restart queued a switch to %q", name)
+	default:
+	}
+}
+
+func TestRequestRestartWithoutASessionIsANoop(t *testing.T) {
+	t.Parallel()
+
+	if New().RequestRestart() {
+		t.Fatal("RequestRestart reported a cancelled session when none was running")
 	}
 }

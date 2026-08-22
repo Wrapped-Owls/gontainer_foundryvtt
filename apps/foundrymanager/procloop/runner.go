@@ -2,6 +2,7 @@ package procloop
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -17,11 +18,13 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 )
 
-// statusTimeout bounds the live status probe against the local Foundry server.
 const statusTimeout = 2 * time.Second
 
+// ErrNoSession reports that no Foundry session was running to act on.
+var ErrNoSession = errors.New("procloop: no running session")
+
 var (
-	_ dashboard.Switcher     = (*Runner)(nil)
+	_ dashboard.Supervisor   = (*Runner)(nil)
 	_ dashboard.ProfileStore = (*Runner)(nil)
 	_ dashboard.LogReader    = (*Runner)(nil)
 )
@@ -41,9 +44,7 @@ type Runner struct {
 	logs       *logstore.Store
 }
 
-// New creates a Runner ready to run. The dashboard is started internally when
-// Run is called. initialActive, if non-empty, is pre-set as the active profile
-// name so the dashboard reports the correct state from the first request.
+// New seeds the dashboard's reported active profile from initialActive, if set.
 func New(
 	initial State,
 	initialActive string,
@@ -74,8 +75,7 @@ func New(
 	}
 }
 
-// Run starts the dashboard and the process loop. Blocks until clean shutdown.
-// Returns the Foundry process exit code.
+// Run blocks until shutdown and returns the Foundry exit code.
 func (r *Runner) Run(ctx context.Context) int {
 	dashCtx, cancelDash := context.WithCancel(ctx)
 	var wg sync.WaitGroup
@@ -92,8 +92,6 @@ func (r *Runner) Run(ctx context.Context) int {
 	return code
 }
 
-// RequestSwitch validates and enqueues a profile switch from external callers
-// (e.g. the dashboard HTTP handler).
 func (r *Runner) RequestSwitch(name string) error {
 	if _, ok := r.findProfile(name); !ok {
 		return fmt.Errorf("unknown profile %q", name)
@@ -102,34 +100,47 @@ func (r *Runner) RequestSwitch(name string) error {
 	return nil
 }
 
+// RequestRestart clears the failure history and cancels the session so the child
+// respawns immediately, instead of forcing operators to cycle the active profile
+// just to cut a backoff wait short.
+func (r *Runner) RequestRestart() error {
+	if !r.ctrl.RequestRestart() {
+		return ErrNoSession
+	}
+	// The wait is already cut short; a history we cannot clear only costs the next
+	// failure a longer delay, so it must not fail the request.
+	if err := backoff.NewFromConfig(r.backoffCfg).Reset(); err != nil {
+		r.logger.Warn("could not clear the backoff history", "err", err)
+	}
+	return nil
+}
+
 // Active returns the name of the currently active profile (empty for base config).
 func (r *Runner) Active() string {
 	return r.ctrl.Active()
 }
 
-// Version returns the version string of the currently running Foundry instance.
 func (r *Runner) Version() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.state.Version
 }
 
-// FoundryStatus probes the running Foundry server for its live status. It
-// returns an error when the server is unreachable (for example between
-// restarts), which callers treat as "no users connected".
+// FoundryStatus errors when the server is unreachable, which callers treat as
+// "no users connected".
 func (r *Runner) FoundryStatus(ctx context.Context) (foundrystatus.Status, error) {
 	r.mu.RLock()
 	port := r.state.Port
 	r.mu.RUnlock()
 
-	ctx, cancel := context.WithTimeout(ctx, statusTimeout)
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, statusTimeout)
 	defer cancel()
 	// simplification: assumes no route prefix; local probes hit the bare port.
 	// Upgrade path: thread Runtime.RoutePrefix into procloop.State if needed.
 	return r.status.Fetch(ctx, fmt.Sprintf("http://127.0.0.1:%d", port))
 }
 
-// Logs returns the last n captured Foundry log lines.
 func (r *Runner) Logs(n int) []string { return r.logs.Tail(n) }
 
 // Events returns detected error/crash events at or after cursor and the next cursor.

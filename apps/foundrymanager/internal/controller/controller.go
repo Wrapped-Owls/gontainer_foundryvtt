@@ -1,5 +1,3 @@
-// Package controller coordinates profile switching between the dashboard HTTP
-// handler and the manager's process loop.
 package controller
 
 import (
@@ -8,10 +6,11 @@ import (
 	"sync"
 )
 
-// ErrProfileSwitch is injected as the cause when a profile switch cancels the
-// current session context. Callers can use errors.Is to distinguish a switch
-// from a normal shutdown.
+// ErrProfileSwitch is the cancel cause for a switch; check it with errors.Is.
 var ErrProfileSwitch = errors.New("foundrymanager: profile switch requested")
+
+// ErrRestart marks a restart's cancel cause, distinct from a switch or a shutdown.
+var ErrRestart = errors.New("foundrymanager: restart requested")
 
 // SwitchController coordinates the handoff between the dashboard HTTP handler
 // and the manager's process loop. All methods are safe for concurrent use.
@@ -22,34 +21,42 @@ type SwitchController struct {
 	SwitchCh chan string
 }
 
-// New returns an initialised SwitchController.
 func New() *SwitchController {
 	return &SwitchController{SwitchCh: make(chan string, 1)}
 }
 
-// SetCancel stores the cancel function for the current profile session.
 func (c *SwitchController) SetCancel(fn context.CancelCauseFunc) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.cancelFn = fn
 }
 
-// SetActive records the name of the currently active profile.
 func (c *SwitchController) SetActive(name string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.current = name
 }
 
-// Active returns the name of the currently active profile.
 func (c *SwitchController) Active() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.current
 }
 
-// RequestSwitch queues a profile switch and cancels the current session.
-// If a previous switch is still pending it is replaced.
+// RequestRestart reports whether a live session was actually cancelled. A stale or
+// absent cancel means the request went nowhere, and the caller must not claim it did.
+func (c *SwitchController) RequestRestart() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cancelFn == nil {
+		return false
+	}
+	c.cancelFn(ErrRestart)
+	c.cancelFn = nil
+	return true
+}
+
+// RequestSwitch replaces any pending switch and cancels the current session.
 func (c *SwitchController) RequestSwitch(name string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
