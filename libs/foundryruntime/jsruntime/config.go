@@ -12,9 +12,9 @@ type Kind string
 const (
 	Bun  Kind = "bun"
 	Node Kind = "node"
-)
 
-const Default = Bun
+	Default = Bun
+)
 
 const (
 	envJSRuntime     = "FOUNDRY_JS_RUNTIME"
@@ -22,6 +22,10 @@ const (
 )
 
 var ErrUnsupported = errors.New("jsruntime: unsupported runtime kind")
+
+var ErrNotFound = errors.New("jsruntime: runtime binary not on PATH")
+
+var ErrUnknownFoundry = errors.New("jsruntime: unknown foundry major")
 
 type Config struct {
 	Kind Kind

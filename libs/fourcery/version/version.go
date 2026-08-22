@@ -64,3 +64,10 @@ func (v Version) DirName() string {
 	}
 	return "foundryvtt_v" + v.raw
 }
+
+func (v Version) Major() uint64 {
+	if v.parsed == nil {
+		return 0
+	}
+	return v.parsed.Major()
+}
