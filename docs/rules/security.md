@@ -10,7 +10,7 @@
 - The `gosec` linter is enabled; obey its findings. Suppressions need a `// #nosec G<n>:
   <justification>` comment.
 - The `secfuse` package (`apps/foundryctl/internal/secfuse`) handles runtime credential
-  injection into the FoundryVTT options file. The loaded secret values must not be logged —
+  injection into the FoundryVTT options file. The loaded secret values must not be logged -
   see [`logging.md`](logging.md).
 
 ## Logs
@@ -28,14 +28,18 @@
 
 ## Container and supply chain
 
-- Base images are pinned by digest in `Containerfile`. No `:latest` tags.
+- Every runtime package comes from nixpkgs via `nix/runtime/root.nix`, pinned by the flake lock
+  rather than by a mutable registry tag. The final stage is `scratch`: no base image, no
+  `:latest`, and no shell.
+- A version pinned ahead of nixpkgs (`nix/overlay.nix`) fetches the upstream project's own
+  release artefact with its hash recorded. No third-party mirrors.
 - Go dependencies are pinned in `go.mod`; `go mod tidy` is run via the Makefile/Taskfile,
   not by hand.
 - Downloaded FoundryVTT releases are verified against the presigned URL returned by the
-  authenticated FoundryVTT API — do not fetch from arbitrary URLs.
+  authenticated FoundryVTT API - do not fetch from arbitrary URLs.
 
 ## See also
 
-- [`config.md`](config.md) — typed `Config` and env var loading.
-- [`logging.md`](logging.md) — what must not appear in log output.
-- [`../rules/http-clients.md`](http-clients.md) — authenticated HTTP client for `fourcery`.
+- [`config.md`](config.md) - typed `Config` and env var loading.
+- [`logging.md`](logging.md) - what must not appear in log output.
+- [`../rules/http-clients.md`](http-clients.md) - authenticated HTTP client for `fourcery`.

@@ -44,13 +44,38 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Build and push image
+      - name: Build image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Containerfile
-          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          target: runtime
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:verify
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify the pinned runtimes
+        run: |
+          image="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:verify"
+          want_bun=$(sed -n 's/.*version = "\(.*\)".*/\1/p' nix/overlay.nix | head -1)
+          got_bun=$(docker run --rm --entrypoint /bin/bun "$image" --version)
+          if [ "$got_bun" != "$want_bun" ]; then
+            echo "bun is $got_bun, but nix/overlay.nix pins $want_bun" >&2
+            exit 1
+          fi
+          docker run --rm --entrypoint /bin/node22 "$image" --version | grep -q '^v22\.'
+          docker run --rm --entrypoint /bin/node24 "$image" --version | grep -q '^v24\.'
+          echo "bun $got_bun, node22 and node24 all present"
+
+      - name: Push image
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Containerfile
+          target: runtime
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max

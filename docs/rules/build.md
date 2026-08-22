@@ -4,9 +4,12 @@
 
 Nix is the canonical build system for this repository.
 
-- Dockerfiles must not duplicate build logic already implemented in Nix.
+- Dockerfiles must not duplicate build logic already implemented in Nix. The
+  `Containerfile` resolves nothing: it runs `nix build .#runtimeRoot` in a builder
+  stage and copies the result onto `scratch`, so package selection stays in
+  `nix/runtime/root.nix` and only the OCI config lives in the Containerfile.
 - Containers may use `nixos/nix` images purely as Nix execution wrappers for environments without a local Nix installation.
-- Reproducibility is a hard requirement: build outputs must be cacheable and deterministic.
+- Reproducibility is a hard requirement: build outputs must be cacheable and deterministic. No floating base-image tags.
 
 ## OCI/image rules
 
@@ -34,5 +37,5 @@ This logic lives in Go application code. It must not be re-implemented in shell 
 
 ## See also
 
-- [`../patterns/nix-builds.md`](../patterns/nix-builds.md) — Nix flake and image build recipe.
-- [`code-placement.md`](code-placement.md) — `nix/` directory placement rules.
+- [`../patterns/nix-builds.md`](../patterns/nix-builds.md) - Nix flake and image build recipe.
+- [`code-placement.md`](code-placement.md) - `nix/` directory placement rules.

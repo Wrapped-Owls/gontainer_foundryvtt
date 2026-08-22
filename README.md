@@ -11,9 +11,8 @@ libs/foundrypatch/    version-gated install patching with idempotent ledger
 libs/foundryruntime/  runtime config, health, js runtime, lifecycle
 examples/             runnable examples
 nix/                  image and package module definitions
-flake.nix             Nix flake (packages: foundryctl, bun, image)
+flake.nix             Nix flake (packages: foundryctl, taverncord, image)
 patches/manifest.yaml install patches applied before launch
-tests/                integration and e2e modules
 ```
 
 ## Build
@@ -21,6 +20,17 @@ tests/                integration and e2e modules
 ```sh
 docker build -f Containerfile -t foundryvtt-docker:dev .
 ```
+
+Nix resolves the runtime packages (`nix/runtime/root.nix`); the `Containerfile` runs it in a
+`nixos/nix` builder stage and assembles the result onto `scratch`. No local Nix
+installation is needed. `make image` wraps the same command.
+
+## JavaScript runtime
+
+`FOUNDRY_JS_RUNTIME` picks the runtime: `bun` (the default) or `node`.
+`FOUNDRY_JS_RUNTIME_PATH` overrides the choice with an explicit binary path. See
+[`docs/rules/supervision.md`](docs/rules/supervision.md) for which Node major a
+Foundry version needs.
 
 ## Run
 
@@ -33,9 +43,9 @@ docker build -f Containerfile -t foundryvtt-docker:dev .
 
 Acquisition sources (checked in this order after local artefacts):
 
-- `FOUNDRY_SESSION` — authenticated session cookie
-- `FOUNDRY_USERNAME` + `FOUNDRY_PASSWORD` — login credentials
-- `FOUNDRY_RELEASE_URL` — presigned download URL (used only when no local artefact matches)
+- `FOUNDRY_SESSION` - authenticated session cookie
+- `FOUNDRY_USERNAME` + `FOUNDRY_PASSWORD` - login credentials
+- `FOUNDRY_RELEASE_URL` - presigned download URL (used only when no local artefact matches)
 
 ### Local zip / folder install
 
@@ -63,12 +73,13 @@ docker run --name foundry \
 ```
 
 Restarting the container with the same `/foundry` volume reuses the installed version and skips
-already-applied patches — no re-download, no re-patch.
+already-applied patches - no re-download, no re-patch.
 
 ## Development
 
 ```sh
 make vet test
+make race
 make fmt
 make tidy
 ```
