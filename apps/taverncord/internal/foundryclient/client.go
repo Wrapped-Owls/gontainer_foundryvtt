@@ -10,15 +10,12 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/jsonhttp"
 )
 
-// Client calls the foundrymanager dashboard REST API.
-// It implements command.FoundryClient.
 type Client struct {
 	cfg jsonhttp.ClientConfig
 }
 
 var _ command.FoundryClient = (*Client)(nil)
 
-// profilesPath is the dashboard profiles collection endpoint.
 const profilesPath = "/profiles"
 
 // New creates a Client targeting the given base URL (e.g. "http://foundryvtt:30002").
@@ -45,9 +42,7 @@ func (c *Client) ListProfiles(ctx context.Context) (command.ProfilesData, error)
 	return command.ProfilesData{Active: resp.Active, Profiles: resp.Profiles}, nil
 }
 
-// Switch calls POST /switch to request a profile change. When force is false the
-// dashboard rejects the switch (409) if users are connected. Returns an error on
-// non-202 responses, including the dashboard error message when available.
+// Switch with force false gets a 409 when users are connected.
 func (c *Client) Switch(ctx context.Context, name string, force bool) error {
 	body := switchBody{Profile: name, Force: force}
 	_, err := jsonhttp.Request[struct{}, switchBody](ctx, c.cfg, jsonhttp.RequestConfig[switchBody]{
@@ -63,7 +58,27 @@ func (c *Client) Switch(ctx context.Context, name string, force bool) error {
 	return err
 }
 
-// decodeError extracts the dashboard's error message from a failed response.
+// Restart with force false gets a 409 when players are connected.
+func (c *Client) Restart(ctx context.Context, force bool) error {
+	body := restartBody{Force: force}
+	_, err := jsonhttp.Request[struct{}, restartBody](
+		ctx,
+		c.cfg,
+		jsonhttp.RequestConfig[restartBody]{
+			Method: http.MethodPost,
+			Path:   "/restart",
+			Body:   &body,
+			OnStatus: map[int]func(*http.Response) error{
+				http.StatusBadRequest:          decodeError,
+				http.StatusConflict:            decodeError,
+				http.StatusInternalServerError: decodeError,
+				http.StatusAccepted:            func(_ *http.Response) error { return nil },
+			},
+		},
+	)
+	return err
+}
+
 func decodeError(r *http.Response) error {
 	var e errorResp
 	if jsonErr := json.NewDecoder(r.Body).Decode(&e); jsonErr == nil && e.Error != "" {

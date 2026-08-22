@@ -7,19 +7,18 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
-// Responder abstracts sending a reply to a Discord interaction.
-// Implemented by discordadapter.interactionContext.
+// Responder abstracts a reply; implemented by discordadapter.interactionContext.
 type Responder interface {
 	Send(ctx context.Context, content string, ephemeral bool) error
 	// Edit replaces the content of the initial response already sent by Send.
 	Edit(ctx context.Context, content string) error
 }
 
-// FoundryClient abstracts calls to the foundrymanager dashboard REST API.
-// Implemented by foundryclient.Client.
+// FoundryClient abstracts the dashboard REST API; implemented by foundryclient.Client.
 type FoundryClient interface {
 	ListProfiles(ctx context.Context) (ProfilesData, error)
 	Switch(ctx context.Context, name string, force bool) error
+	Restart(ctx context.Context, force bool) error
 	Status(ctx context.Context) (StatusData, error)
 	Versions(ctx context.Context) (VersionsData, error)
 	Download(ctx context.Context, version, url string) error
@@ -41,7 +40,6 @@ type EventsData struct {
 	Next   int
 }
 
-// EventItem is a single detected log event.
 type EventItem struct {
 	Time    time.Time
 	Kind    string

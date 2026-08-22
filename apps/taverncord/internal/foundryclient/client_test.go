@@ -11,16 +11,23 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
+const (
+	profAlice    = "alice"
+	verFoundry14 = "14.361.0"
+)
+
 func TestListProfiles(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet || r.URL.Path != "/profiles" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 		json.NewEncoder(w).Encode(profilesResp{
-			Active: "alice",
+			Active: profAlice,
 			Profiles: []profile.Profile{
-				{Name: "alice", Label: "Alice"},
+				{Name: profAlice, Label: "Alice"},
 				{Name: "bob", Label: "Bob"},
 			},
 		})
@@ -32,7 +39,7 @@ func TestListProfiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if data.Active != "alice" {
+	if data.Active != profAlice {
 		t.Errorf("expected active=alice, got %q", data.Active)
 	}
 	if len(data.Profiles) != 2 {
@@ -41,6 +48,8 @@ func TestListProfiles(t *testing.T) {
 }
 
 func TestSwitch_accepted(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusAccepted)
 	}))
@@ -52,6 +61,8 @@ func TestSwitch_accepted(t *testing.T) {
 }
 
 func TestSwitch_conflictOnlineUsers(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(errorResp{Error: "2 user(s) currently online"})
@@ -68,6 +79,8 @@ func TestSwitch_conflictOnlineUsers(t *testing.T) {
 }
 
 func TestSwitch_badRequest(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errorResp{Error: "unknown profile"})
@@ -81,13 +94,15 @@ func TestSwitch_badRequest(t *testing.T) {
 }
 
 func TestVersions(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/versions" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 		json.NewEncoder(w).Encode(versionsResp{
-			Active: "14.361.0", Installed: []string{"14.361.0", "13.351.0"},
+			Active: verFoundry14, Installed: []string{verFoundry14, "13.351.0"},
 		})
 	}))
 	defer srv.Close()
@@ -96,23 +111,27 @@ func TestVersions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if data.Active != "14.361.0" || len(data.Installed) != 2 {
+	if data.Active != verFoundry14 || len(data.Installed) != 2 {
 		t.Errorf("unexpected data: %+v", data)
 	}
 }
 
 func TestDownload_accepted(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusAccepted)
 	}))
 	defer srv.Close()
 
-	if err := New(srv.URL).Download(context.Background(), "14.361.0", ""); err != nil {
+	if err := New(srv.URL).Download(context.Background(), verFoundry14, ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestDownload_badGatewayRelaysError(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
 		json.NewEncoder(w).Encode(errorResp{Error: "no source for 9.9.9"})
@@ -126,6 +145,8 @@ func TestDownload_badGatewayRelaysError(t *testing.T) {
 }
 
 func TestLogs(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/logs" || r.URL.Query().Get("tail") != "10" {
 			w.WriteHeader(http.StatusNotFound)
@@ -145,6 +166,8 @@ func TestLogs(t *testing.T) {
 }
 
 func TestEvents(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("since") != "5" {
 			w.WriteHeader(http.StatusBadRequest)
@@ -167,9 +190,11 @@ func TestEvents(t *testing.T) {
 }
 
 func TestStatus(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(statusResp{
-			Active:        "alice",
+			Active:        profAlice,
 			Version:       "13.351",
 			Online:        true,
 			WorldActive:   true,
@@ -186,11 +211,88 @@ func TestStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if data.Active != "alice" || data.Version != "13.351" {
+	if data.Active != profAlice || data.Version != "13.351" {
 		t.Errorf("unexpected data: %+v", data)
 	}
 	if !data.Online || data.World != "my-world" || data.Users != 2 ||
 		data.SystemVersion != "4.16.1" {
 		t.Errorf("expected live status fields, got %+v", data)
+	}
+}
+
+func postRestart(
+	t *testing.T,
+	status int,
+	body errorResp,
+	force bool,
+) (gotPath string, gotForce bool, err error) {
+	t.Helper()
+
+	var sent restartBody
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_ = json.NewDecoder(r.Body).Decode(&sent)
+		w.WriteHeader(status)
+		if body.Error != "" {
+			_ = json.NewEncoder(w).Encode(body)
+		}
+	}))
+	defer srv.Close()
+
+	return gotPath, sent.Force, New(srv.URL).Restart(context.Background(), force)
+}
+
+func TestRestartAccepted(t *testing.T) {
+	t.Parallel()
+
+	for _, force := range []bool{false, true} {
+		path, sentForce, err := postRestart(t, http.StatusAccepted, errorResp{}, force)
+		if err != nil {
+			t.Fatalf("force=%v: unexpected error: %v", force, err)
+		}
+		if path != "/restart" {
+			t.Fatalf("posted to %q, want /restart", path)
+		}
+		if sentForce != force {
+			t.Fatalf("force sent as %v, want %v", sentForce, force)
+		}
+	}
+}
+
+func TestRestartRelaysTheManagersReason(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		status      int
+		body        errorResp
+		wantMessage string
+	}{
+		{
+			name:        "players online",
+			status:      http.StatusConflict,
+			body:        errorResp{Error: "2 user(s) currently online"},
+			wantMessage: "online",
+		},
+		{
+			name:        "a failed reset",
+			status:      http.StatusInternalServerError,
+			body:        errorResp{Error: "failed to request a restart"},
+			wantMessage: "failed to request",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, _, err := postRestart(t, testCase.status, testCase.body, false)
+			if err == nil {
+				t.Fatal("expected an error")
+			}
+			if !strings.Contains(err.Error(), testCase.wantMessage) {
+				t.Fatalf("err = %q, want it to mention %q", err.Error(), testCase.wantMessage)
+			}
+		})
 	}
 }
