@@ -59,6 +59,7 @@ func PrepareProfile(
 			step.Options(),
 			step.License(),
 			step.Patches(),
+			step.JSRuntime(),
 		)
 	}
 	return step.RunFrom(
