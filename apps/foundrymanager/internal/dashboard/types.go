@@ -8,8 +8,9 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
-type Switcher interface {
+type Supervisor interface {
 	RequestSwitch(name string) error
+	RequestRestart() error
 	Active() string
 	Version() string
 	FoundryStatus(ctx context.Context) (foundrystatus.Status, error)
@@ -70,6 +71,10 @@ func toDetail(p profile.Profile) profileDetail {
 type switchBody struct {
 	Profile string `json:"profile"`
 	Force   bool   `json:"force"`
+}
+
+type restartBody struct {
+	Force bool `json:"force"`
 }
 
 type versionsResponse struct {

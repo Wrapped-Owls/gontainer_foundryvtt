@@ -75,12 +75,12 @@ func (r *Runner) Run(ctx context.Context) int {
 	var wg sync.WaitGroup
 	wg.Go(func() {
 		errCh := dashboard.Start(dashCtx, dashboard.Params{
-			Logger:   r.logger,
-			Addr:     r.cfg.DashboardAddr,
-			Switcher: r,
-			Versions: r.versions,
-			Profiles: r,
-			Logs:     r,
+			Logger:     r.logger,
+			Addr:       r.cfg.DashboardAddr,
+			Supervisor: r,
+			Versions:   r.versions,
+			Profiles:   r,
+			Logs:       r,
 		})
 		if err := <-errCh; err != nil {
 			r.logger.Error("dashboard server stopped unexpectedly", "err", err)

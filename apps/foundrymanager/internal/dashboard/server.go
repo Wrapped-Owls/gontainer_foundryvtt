@@ -9,18 +9,18 @@ import (
 )
 
 type Params struct {
-	Logger   *slog.Logger
-	Addr     string
-	Switcher Switcher
-	Versions VersionManager
-	Profiles ProfileStore
-	Logs     LogReader
+	Logger     *slog.Logger
+	Addr       string
+	Supervisor Supervisor
+	Versions   VersionManager
+	Profiles   ProfileStore
+	Logs       LogReader
 }
 
 func Start(ctx context.Context, params Params) <-chan error {
 	const readHeaderTimeout = 3 * time.Second
 	mux := http.NewServeMux()
-	registerHandlers(mux, params.Switcher, params.Versions, params.Profiles, params.Logger)
+	registerHandlers(mux, params.Supervisor, params.Versions, params.Profiles, params.Logger)
 	registerLogHandlers(mux, params.Logs, params.Logger)
 
 	srv := &http.Server{Addr: params.Addr, Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
@@ -34,7 +34,6 @@ func Start(ctx context.Context, params Params) <-chan error {
 	})
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			params.Logger.Error("dashboard server stopped", "err", err)
 			errCh <- err
 		}
 		close(errCh)
