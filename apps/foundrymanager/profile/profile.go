@@ -1,6 +1,9 @@
 package profile
 
-import "errors"
+import (
+	"errors"
+	"slices"
+)
 
 var (
 	ErrNotFound = errors.New("profile: not found")
@@ -17,4 +20,12 @@ type Profile struct {
 	Version           string `json:"version"`
 	World             string `json:"world"`
 	ManifestPath      string `json:"manifestPath"`
+}
+
+func ByName(profiles []Profile, name string) (Profile, bool) {
+	i := slices.IndexFunc(profiles, func(p Profile) bool { return p.Name == name })
+	if i < 0 {
+		return Profile{}, false
+	}
+	return profiles[i], true
 }

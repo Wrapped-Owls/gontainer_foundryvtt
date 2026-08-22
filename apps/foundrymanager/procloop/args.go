@@ -1,22 +1,25 @@
 package procloop
 
 import (
+	"path/filepath"
 	"strconv"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime/jsruntime"
 )
 
-func BuildArgs(kind jsruntime.Kind, mainScript, dataPath string, port int, world string) []string {
+const bunRun = "run"
+
+func BuildArgs(s State) []string {
 	args := []string{
-		mainScript,
-		"--dataPath=" + dataPath,
-		"--port=" + strconv.Itoa(port),
+		filepath.Join(s.InstallRoot, s.MainScript),
+		"--dataPath=" + s.DataPath,
+		"--port=" + strconv.Itoa(s.Port),
 	}
-	if world != "" {
-		args = append(args, "--world="+world)
+	if s.World != "" {
+		args = append(args, "--world="+s.World)
 	}
-	if kind == jsruntime.Bun {
-		return append([]string{"run"}, args...)
+	if s.JSRuntime.Kind == jsruntime.Bun {
+		return append([]string{bunRun}, args...)
 	}
 	return args
 }

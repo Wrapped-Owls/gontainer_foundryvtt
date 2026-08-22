@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profloader"
@@ -40,22 +39,16 @@ func (r *Runner) applySwitch(ctx context.Context) error {
 func (r *Runner) findProfile(name string) (profile.Profile, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	for _, p := range r.state.Profiles {
-		if p.Name == name {
-			return p, true
-		}
-	}
-	return profile.Profile{}, false
+	return profile.ByName(r.state.Profiles, name)
 }
 
 func (r *Runner) buildSpec() procspawn.Spec {
 	r.mu.RLock()
 	s := r.state
 	r.mu.RUnlock()
-	mainScript := filepath.Join(s.InstallRoot, s.MainScript)
 	return procspawn.Spec{
 		Path:   s.JSRuntime.Path,
-		Args:   BuildArgs(s.JSRuntime.Kind, mainScript, s.DataPath, s.Port, s.World),
+		Args:   BuildArgs(s),
 		Dir:    s.InstallRoot,
 		Stdout: io.MultiWriter(os.Stdout, r.logs),
 		Stderr: io.MultiWriter(os.Stderr, r.logs),
