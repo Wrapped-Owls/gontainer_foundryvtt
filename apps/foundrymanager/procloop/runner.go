@@ -2,6 +2,7 @@ package procloop
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -19,8 +20,10 @@ import (
 
 const statusTimeout = 2 * time.Second
 
+var ErrNoSession = errors.New("procloop: no running session")
+
 var (
-	_ dashboard.Switcher     = (*Runner)(nil)
+	_ dashboard.Supervisor   = (*Runner)(nil)
 	_ dashboard.ProfileStore = (*Runner)(nil)
 	_ dashboard.LogReader    = (*Runner)(nil)
 )
@@ -98,6 +101,16 @@ func (r *Runner) RequestSwitch(name string) error {
 		return fmt.Errorf("unknown profile %q", name)
 	}
 	r.ctrl.RequestSwitch(name)
+	return nil
+}
+
+func (r *Runner) RequestRestart() error {
+	if !r.ctrl.RequestRestart() {
+		return ErrNoSession
+	}
+	if err := backoff.NewFromConfig(r.backoffCfg).Reset(); err != nil {
+		r.logger.Warn("could not clear the backoff history", "err", err)
+	}
 	return nil
 }
 

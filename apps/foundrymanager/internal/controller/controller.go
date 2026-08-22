@@ -8,6 +8,8 @@ import (
 
 var ErrProfileSwitch = errors.New("foundrymanager: profile switch requested")
 
+var ErrRestart = errors.New("foundrymanager: restart requested")
+
 type SwitchController struct {
 	mu       sync.Mutex
 	cancelFn context.CancelCauseFunc
@@ -35,6 +37,17 @@ func (c *SwitchController) Active() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.current
+}
+
+func (c *SwitchController) RequestRestart() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cancelFn == nil {
+		return false
+	}
+	c.cancelFn(ErrRestart)
+	c.cancelFn = nil
+	return true
 }
 
 func (c *SwitchController) RequestSwitch(name string) {
