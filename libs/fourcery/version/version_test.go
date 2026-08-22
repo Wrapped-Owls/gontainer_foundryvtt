@@ -139,3 +139,28 @@ func TestVersionDirName(t *testing.T) {
 		})
 	}
 }
+
+func TestVersionMajor(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		input string
+		want  uint64
+	}{
+		{"a full semver", "14.361.2", 14},
+		{"a major.minor constraint", "13.351", 13},
+		{"an unparseable value is neutral", "latest", 0},
+		{"the zero value is neutral", "", 0},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := Parse(testCase.input).Major(); got != testCase.want {
+				t.Fatalf("Major() = %d, want %d", got, testCase.want)
+			}
+		})
+	}
+}
