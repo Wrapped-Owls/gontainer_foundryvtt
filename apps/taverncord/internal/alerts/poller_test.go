@@ -78,14 +78,12 @@ func TestPoller_announcesOnlyNewEvents(t *testing.T) {
 			Events: []command.EventItem{{Kind: "crash", Message: "boom"}},
 			Next:   2,
 		})
-		time.Sleep(time.Second)
-		synctest.Wait()
+		synctest.Sleep(time.Second)
 		if sender.count() != 1 {
 			t.Fatalf("expected one alert, got %d", sender.count())
 		}
 
-		time.Sleep(time.Second)
-		synctest.Wait()
+		synctest.Sleep(time.Second)
 		if sender.count() != 1 {
 			t.Fatalf("expected no re-announce, got %d", sender.count())
 		}
