@@ -55,6 +55,26 @@ func (c *Client) Switch(ctx context.Context, name string, interrupt command.Inte
 	return err
 }
 
+func (c *Client) Restart(ctx context.Context, interrupt command.Interrupt) error {
+	body := restartBody{Force: interrupt == command.InterruptAlways}
+	_, err := jsonhttp.Request[struct{}, restartBody](
+		ctx,
+		c.cfg,
+		jsonhttp.RequestConfig[restartBody]{
+			Method: http.MethodPost,
+			Path:   "/restart",
+			Body:   &body,
+			OnStatus: map[int]func(*http.Response) error{
+				http.StatusBadRequest:          decodeError,
+				http.StatusConflict:            decodeError,
+				http.StatusInternalServerError: decodeError,
+				http.StatusAccepted:            func(_ *http.Response) error { return nil },
+			},
+		},
+	)
+	return err
+}
+
 func decodeError(r *http.Response) error {
 	var e errorResp
 	if jsonErr := json.NewDecoder(r.Body).Decode(&e); jsonErr == nil && e.Error != "" {

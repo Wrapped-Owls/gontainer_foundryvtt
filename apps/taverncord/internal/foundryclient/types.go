@@ -63,6 +63,10 @@ type eventsResp struct {
 	Next   int             `json:"next"`
 }
 
+type restartBody struct {
+	Force bool `json:"force"`
+}
+
 type profileBody struct {
 	Name    string `json:"name,omitempty"`
 	Label   string `json:"label,omitempty"`

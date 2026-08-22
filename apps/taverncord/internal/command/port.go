@@ -29,6 +29,7 @@ const (
 type FoundryClient interface {
 	ListProfiles(ctx context.Context) (ProfilesData, error)
 	Switch(ctx context.Context, name string, interrupt Interrupt) error
+	Restart(ctx context.Context, interrupt Interrupt) error
 	Status(ctx context.Context) (StatusData, error)
 	Versions(ctx context.Context) (VersionsData, error)
 	Download(ctx context.Context, version, url string) error
