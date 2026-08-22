@@ -1,6 +1,7 @@
 package profloader
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"os"
@@ -16,12 +17,17 @@ type profileFile struct {
 
 func FromFile(path string) (profiles []profile.Profile, active string, err error) {
 	var stored []byte
-	stored, err = os.ReadFile(path) //nolint:gosec // operator-configured path
+	stored, err = os.ReadFile(
+		path,
+	) //nolint:gosec // path is sourced from operator-controlled config
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, "", nil
 	}
 	if err != nil {
 		return nil, "", err
+	}
+	if len(bytes.TrimSpace(stored)) == 0 {
+		return nil, "", nil
 	}
 	var f profileFile
 	if err = json.Unmarshal(stored, &f); err != nil {
@@ -31,7 +37,7 @@ func FromFile(path string) (profiles []profile.Profile, active string, err error
 }
 
 func WriteProfiles(path string, profiles []profile.Profile) error {
-	stored, _ := os.ReadFile(path) //nolint:gosec
+	stored, _ := os.ReadFile(path) //nolint:gosec // path is sourced from operator-controlled config
 	var f profileFile
 	if len(stored) > 0 {
 		_ = json.Unmarshal(stored, &f)
@@ -45,7 +51,7 @@ func WriteProfiles(path string, profiles []profile.Profile) error {
 }
 
 func WriteActive(path, name string) error {
-	stored, _ := os.ReadFile(path) //nolint:gosec
+	stored, _ := os.ReadFile(path) //nolint:gosec // path is sourced from operator-controlled config
 	var f profileFile
 	if len(stored) > 0 {
 		_ = json.Unmarshal(stored, &f)
@@ -55,5 +61,5 @@ func WriteActive(path, name string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(out, '\n'), 0o600) //nolint:gosec
+	return os.WriteFile(path, append(out, '\n'), fsperm.Secret)
 }

@@ -15,6 +15,7 @@ func Load() (Config, error) {
 func LoadFromEnv(c *Config) error {
 	return confloader.BindEnv(
 		confloader.BindField(&c.ProfilesFile, envProfilesFile, nil),
+		confloader.BindField(&c.DefaultProfile, envDefaultProfile, nil),
 		confloader.BindField(&c.DashboardAddr, envDashboardAddr, nil),
 		confloader.BindField(&c.LogAlertPatterns, envLogPatterns, parsePatterns),
 	)

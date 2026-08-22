@@ -2,6 +2,7 @@ package config
 
 type Config struct {
 	ProfilesFile     string
+	DefaultProfile   string
 	DashboardAddr    string
 	LogAlertPatterns []string
 }
