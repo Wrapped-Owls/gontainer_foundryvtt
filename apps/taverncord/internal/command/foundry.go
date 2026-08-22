@@ -40,7 +40,7 @@ func (pc *ProfileCommands) List(ctx context.Context, r Responder) error {
 		}
 		fmt.Fprintf(&sb, "%s **%s** (`%s`)", marker, label, p.Name)
 		if detail := profileSummary(p.Version, p.World); detail != "" {
-			sb.WriteString("  -  " + detail)
+			sb.WriteString(" - " + detail)
 		}
 		sb.WriteByte('\n')
 	}
@@ -65,6 +65,10 @@ func (pc *ProfileCommands) Switch(
 	name string,
 	interrupt Interrupt,
 ) error {
+	before, statusErr := pc.client.Status(ctx)
+	if statusErr != nil {
+		pc.logger.Warn("status before switch failed", "err", statusErr)
+	}
 	if err := r.Send(
 		ctx,
 		fmt.Sprintf("⏳ Switching to profile **%s**...", name),
@@ -76,7 +80,15 @@ func (pc *ProfileCommands) Switch(
 		pc.logger.Error("switch profile failed", "profile", name, "err", err)
 		return r.Edit(ctx, fmt.Sprintf("❌ Switch failed: %s", err.Error()))
 	}
-	return r.Edit(ctx, fmt.Sprintf("✅ Switched to **%s**  -  server is restarting.", name))
+	isBack := cycled(before)
+	return pc.confirm(
+		ctx,
+		r,
+		fmt.Sprintf("Switched to **%s**", name),
+		func(status StatusData) bool {
+			return isBack(status) && status.Active == name
+		},
+	)
 }
 
 func (pc *ProfileCommands) Logs(ctx context.Context, r Responder, tail int) error {
