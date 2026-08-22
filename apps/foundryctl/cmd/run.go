@@ -29,9 +29,13 @@ func Run(_ []string, logger *slog.Logger) int {
 			cancel(err)
 		}
 	}()
-	logger.Info("js runtime selected", "kind", state.JSRuntime.Kind, "path", state.JSRuntime.Path)
 
-	initialState, initialActive := resolveInitialProfile(ctx, logger, state)
+	initialState, initialActive := resolveInitialProfile(
+		ctx,
+		logger,
+		state,
+		activate.PrepareProfile,
+	)
 	mgr := procloop.New(
 		initialState,
 		initialActive,
@@ -73,47 +77,4 @@ func (a *appActivator) Switch(
 		return procloop.State{}, err
 	}
 	return toProcloopState(newState), nil
-}
-
-// resolveInitialProfile returns the initial procloop state and active profile
-// name. If a last-active profile is recorded and found in the profile list, it
-// activates that profile so the process starts in the correct session.
-func resolveInitialProfile(
-	ctx context.Context,
-	logger *slog.Logger,
-	state activate.State,
-) (procloop.State, string) {
-	if state.ActiveProfile == "" {
-		return toProcloopState(state), ""
-	}
-	var target profile.Profile
-	found := false
-	for _, p := range state.Profiles {
-		if p.Name == state.ActiveProfile {
-			target = p
-			found = true
-			break
-		}
-	}
-	if !found {
-		logger.Warn(
-			"last active profile not found, starting with base config",
-			"profile",
-			state.ActiveProfile,
-		)
-		return toProcloopState(state), ""
-	}
-	activated, err := activate.PrepareProfile(ctx, logger, state, target)
-	if err != nil {
-		logger.Warn(
-			"failed to activate last profile, starting with base config",
-			"profile",
-			state.ActiveProfile,
-			"err",
-			err,
-		)
-		return toProcloopState(state), ""
-	}
-	logger.Info("resuming last active profile", "profile", state.ActiveProfile)
-	return toProcloopState(activated), state.ActiveProfile
 }
