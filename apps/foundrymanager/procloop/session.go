@@ -2,6 +2,7 @@ package procloop
 
 import (
 	"context"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/procspawn"
@@ -20,8 +21,6 @@ func (r *Runner) profileLoop(ctx context.Context) int {
 	}
 }
 
-// runSession supervises one profile session: registers the cancel function and
-// delegates to the restart loop.
 func (r *Runner) runSession(ctx context.Context) (int, bool) {
 	profileCtx, cancelProfile := context.WithCancelCause(ctx)
 	defer cancelProfile(nil)
@@ -29,14 +28,15 @@ func (r *Runner) runSession(ctx context.Context) (int, bool) {
 	return r.restartLoop(ctx, profileCtx)
 }
 
-// restartLoop is the backoff restart loop for the current profile session.
-// Returns (exitCode, true) when a switch was requested, (exitCode, false) on
-// clean shutdown or fatal error.
+// restartLoop returns (exitCode, switched): switched is true when the session
+// ended for a reason that warrants re-entering the profile loop.
 func (r *Runner) restartLoop(ctx, profileCtx context.Context) (int, bool) {
 	mgr := backoff.NewFromConfig(r.backoffCfg)
 	for {
+		startedAt := time.Now()
 		code, err := procspawn.Run(profileCtx, r.buildSpec())
 		if err != nil {
+			// A missing or non-executable binary cannot be fixed by respawning here.
 			r.logger.Error("child failed to start", "err", err)
 			r.logs.RecordCrash(code)
 			return 1, false
@@ -52,34 +52,31 @@ func (r *Runner) restartLoop(ctx, profileCtx context.Context) (int, bool) {
 		if code != 0 {
 			r.logs.RecordCrash(code)
 		}
-		dec, decErr := mgr.OnFailure(code)
-		if decErr != nil {
-			r.logger.Error("backoff state failed", "err", decErr)
-			return code, false
-		}
-		switched, earlyExit := r.handleBackoff(ctx, profileCtx, dec)
-		if earlyExit {
+		dec := mgr.OnFailure(code, time.Since(startedAt))
+		switched, shouldStop := r.handleBackoff(ctx, profileCtx, dec)
+		if shouldStop {
 			return code, switched
 		}
 	}
 }
 
-// handleBackoff applies the backoff decision. Returns (switched, stop): if
-// stop is true the caller should return immediately with that switched value.
+// handleBackoff applies the backoff decision. Stopping exits the whole supervisor;
+// see docs/rules/supervision.md for when that is the right answer.
 func (r *Runner) handleBackoff(
 	ctx, profileCtx context.Context,
 	dec backoff.Decision,
-) (switched, stop bool) {
-	switch dec.Mode {
-	case backoff.ModeKubernetes:
+) (switched, shouldStop bool) {
+	if dec.Mode == backoff.ModeKubernetes {
 		return false, true
-	case backoff.ModeNoCache:
-		<-ctx.Done()
+	}
+	if dec.IsExhausted() {
+		r.logger.Error(
+			"restart budget exhausted; exiting so the container can be recreated",
+			"consecutive_failures", dec.State.ConsecutiveFailures,
+		)
 		return false, true
-	case backoff.ModeBackoff:
-		if dec.Delay == 0 {
-			return false, true
-		}
+	}
+	if dec.Delay > 0 {
 		r.logger.Info(
 			"backoff",
 			"delay", dec.Delay,
@@ -89,6 +86,7 @@ func (r *Runner) handleBackoff(
 			if ctx.Err() != nil {
 				return false, true
 			}
+			r.logger.Info("backoff cut short", "cause", context.Cause(profileCtx))
 			return true, true
 		}
 	}
