@@ -1,25 +1,28 @@
 package procloop
 
 import (
+	"path/filepath"
 	"strconv"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundryruntime/jsruntime"
 )
 
-// BuildArgs builds the JS runtime argv for the given kind, script, data path,
-// port, and optional world. When world is non-empty a --world flag is appended
-// so Foundry boots straight into that world instead of the setup screen.
-func BuildArgs(kind jsruntime.Kind, mainScript, dataPath string, port int, world string) []string {
+// bunRun is the subcommand Bun needs and Node rejects.
+const bunRun = "run"
+
+// BuildArgs builds the JS runtime argv for a resolved session. A named world boots
+// straight into it instead of the setup screen.
+func BuildArgs(s State) []string {
 	args := []string{
-		mainScript,
-		"--dataPath=" + dataPath,
-		"--port=" + strconv.Itoa(port),
+		filepath.Join(s.InstallRoot, s.MainScript),
+		"--dataPath=" + s.DataPath,
+		"--port=" + strconv.Itoa(s.Port),
 	}
-	if world != "" {
-		args = append(args, "--world="+world)
+	if s.World != "" {
+		args = append(args, "--world="+s.World)
 	}
-	if kind == jsruntime.Bun {
-		return append([]string{"run"}, args...)
+	if s.JSRuntime.Kind == jsruntime.Bun {
+		return append([]string{bunRun}, args...)
 	}
 	return args
 }
