@@ -11,8 +11,11 @@ import (
 
 // GetProfile calls GET /profiles/{name} and returns the non-secret profile view.
 func (c *Client) GetProfile(ctx context.Context, name string) (command.ProfileInfo, error) {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	resp, err := jsonhttp.Request[profileDetailResp, struct{}](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,
@@ -38,9 +41,12 @@ func (c *Client) GetProfile(ctx context.Context, name string) (command.ProfileIn
 
 // UpdateProfile calls PUT /profiles/{name} to merge non-empty fields.
 func (c *Client) UpdateProfile(ctx context.Context, name string, p command.ProfileInput) error {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	body := toBody(p)
 	_, err := jsonhttp.Request[struct{}, profileBody](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[profileBody]{
 			Method: http.MethodPut,

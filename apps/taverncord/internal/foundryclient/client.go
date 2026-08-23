@@ -2,9 +2,8 @@ package foundryclient
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/command"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/jsonhttp"
@@ -18,18 +17,33 @@ var _ command.FoundryClient = (*Client)(nil)
 
 const profilesPath = "/profiles"
 
+// dashboardRequestTimeout bounds the fast, synchronous dashboard calls.
+const dashboardRequestTimeout = 2 * time.Second
+
+// downloadRequestTimeout bounds Download, whose handler fetches and extracts
+// the release before answering. Matches libs/fourcery/source.
+const downloadRequestTimeout = 30 * time.Minute
+
 // New creates a Client targeting the given base URL (e.g. "http://foundryvtt:30002").
 func New(baseURL string) *Client {
 	return &Client{cfg: jsonhttp.ClientConfig{
 		BaseURL: baseURL,
-		HTTP:    &http.Client{},
+		HTTP:    &http.Client{Timeout: downloadRequestTimeout},
 	}}
+}
+
+// withDashboardTimeout is for the fast calls; Download needs the long bound.
+func withDashboardTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, dashboardRequestTimeout)
 }
 
 // ListProfiles calls GET /profiles and returns the profile list with the active profile name.
 func (c *Client) ListProfiles(ctx context.Context) (command.ProfilesData, error) {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	resp, err := jsonhttp.Request[profilesResp, struct{}](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,
@@ -42,55 +56,13 @@ func (c *Client) ListProfiles(ctx context.Context) (command.ProfilesData, error)
 	return command.ProfilesData{Active: resp.Active, Profiles: resp.Profiles}, nil
 }
 
-// Switch with force false gets a 409 when users are connected.
-func (c *Client) Switch(ctx context.Context, name string, force bool) error {
-	body := switchBody{Profile: name, Force: force}
-	_, err := jsonhttp.Request[struct{}, switchBody](ctx, c.cfg, jsonhttp.RequestConfig[switchBody]{
-		Method: http.MethodPost,
-		Path:   "/switch",
-		Body:   &body,
-		OnStatus: map[int]func(*http.Response) error{
-			http.StatusBadRequest: decodeError,
-			http.StatusConflict:   decodeError,
-			http.StatusAccepted:   func(_ *http.Response) error { return nil },
-		},
-	})
-	return err
-}
-
-// Restart with force false gets a 409 when players are connected.
-func (c *Client) Restart(ctx context.Context, force bool) error {
-	body := restartBody{Force: force}
-	_, err := jsonhttp.Request[struct{}, restartBody](
-		ctx,
-		c.cfg,
-		jsonhttp.RequestConfig[restartBody]{
-			Method: http.MethodPost,
-			Path:   "/restart",
-			Body:   &body,
-			OnStatus: map[int]func(*http.Response) error{
-				http.StatusBadRequest:          decodeError,
-				http.StatusConflict:            decodeError,
-				http.StatusInternalServerError: decodeError,
-				http.StatusAccepted:            func(_ *http.Response) error { return nil },
-			},
-		},
-	)
-	return err
-}
-
-func decodeError(r *http.Response) error {
-	var e errorResp
-	if jsonErr := json.NewDecoder(r.Body).Decode(&e); jsonErr == nil && e.Error != "" {
-		return fmt.Errorf("%s", e.Error)
-	}
-	return fmt.Errorf("request rejected with status %d", r.StatusCode)
-}
-
 // Versions calls GET /versions and returns the installed versions and the active one.
 func (c *Client) Versions(ctx context.Context) (command.VersionsData, error) {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	resp, err := jsonhttp.Request[versionsResp, struct{}](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,
@@ -103,31 +75,13 @@ func (c *Client) Versions(ctx context.Context) (command.VersionsData, error) {
 	return command.VersionsData{Active: resp.Active, Installed: resp.Installed}, nil
 }
 
-// Download calls POST /versions/download to acquire a Foundry version. It returns
-// the dashboard error message verbatim when the download cannot be satisfied.
-func (c *Client) Download(ctx context.Context, version, url string) error {
-	body := downloadBody{Version: version, URL: url}
-	_, err := jsonhttp.Request[struct{}, downloadBody](
-		ctx,
-		c.cfg,
-		jsonhttp.RequestConfig[downloadBody]{
-			Method: http.MethodPost,
-			Path:   "/versions/download",
-			Body:   &body,
-			OnStatus: map[int]func(*http.Response) error{
-				http.StatusBadRequest: decodeError,
-				http.StatusBadGateway: decodeError,
-				http.StatusAccepted:   func(_ *http.Response) error { return nil },
-			},
-		},
-	)
-	return err
-}
-
 // Status calls GET /status and returns the active profile name and Foundry version.
 func (c *Client) Status(ctx context.Context) (command.StatusData, error) {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	resp, err := jsonhttp.Request[statusResp, struct{}](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,

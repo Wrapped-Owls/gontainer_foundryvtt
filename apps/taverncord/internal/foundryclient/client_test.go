@@ -3,18 +3,105 @@ package foundryclient
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/command"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/jsonhttp"
 )
 
 const (
 	profAlice    = "alice"
 	verFoundry14 = "14.361.0"
 )
+
+func TestNewHTTPClient(t *testing.T) {
+	t.Parallel()
+
+	c := New("http://example.invalid")
+
+	client, ok := c.cfg.HTTP.(*http.Client)
+	if !ok {
+		t.Fatalf("HTTP = %T, want *http.Client", c.cfg.HTTP)
+	}
+	if client.Timeout != downloadRequestTimeout {
+		t.Fatalf("HTTP.Timeout = %v, want %v", client.Timeout, downloadRequestTimeout)
+	}
+}
+
+func TestClientKeepsInjectedHTTPDoer(t *testing.T) {
+	t.Parallel()
+
+	injected := &http.Client{Timeout: 5 * time.Second}
+	c := &Client{cfg: jsonhttp.ClientConfig{BaseURL: "http://example.invalid", HTTP: injected}}
+
+	if c.cfg.HTTP != jsonhttp.HTTPDoer(injected) {
+		t.Fatalf("HTTP = %v, want unchanged injected client", c.cfg.HTTP)
+	}
+}
+
+type contextCapturingDoer struct {
+	gotCtx context.Context
+}
+
+func (d *contextCapturingDoer) Do(req *http.Request) (*http.Response, error) {
+	d.gotCtx = req.Context()
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader("{}")),
+		Header:     make(http.Header),
+	}, nil
+}
+
+func TestFastCallsUseShortContextTimeout(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		call func(c *Client) error
+	}{
+		{"ListProfiles", func(c *Client) error { _, err := c.ListProfiles(context.Background()); return err }},
+		{"Versions", func(c *Client) error { _, err := c.Versions(context.Background()); return err }},
+		{"Status", func(c *Client) error { _, err := c.Status(context.Background()); return err }},
+		{"GetProfile", func(c *Client) error { _, err := c.GetProfile(context.Background(), profAlice); return err }},
+		{"UpdateProfile", func(c *Client) error {
+			return c.UpdateProfile(context.Background(), profAlice, command.ProfileInput{})
+		}},
+		{"Logs", func(c *Client) error { _, err := c.Logs(context.Background(), 1); return err }},
+		{"Events", func(c *Client) error { _, err := c.Events(context.Background(), 0); return err }},
+		{"Switch", func(c *Client) error { return c.Switch(context.Background(), profAlice, false) }},
+		{"Restart", func(c *Client) error { return c.Restart(context.Background(), false) }},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			doer := &contextCapturingDoer{}
+			c := &Client{cfg: jsonhttp.ClientConfig{BaseURL: "http://example.invalid", HTTP: doer}}
+
+			before := time.Now()
+			if err := testCase.call(c); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			deadline, hasDeadline := doer.gotCtx.Deadline()
+			if !hasDeadline {
+				t.Fatal("expected the request context to carry a deadline")
+			}
+			const slack = 50 * time.Millisecond
+			remaining := deadline.Sub(before)
+			if remaining <= 0 || remaining > dashboardRequestTimeout+slack {
+				t.Fatalf("deadline %v from call start, want within (0, %v]", remaining, dashboardRequestTimeout)
+			}
+		})
+	}
+}
 
 func TestListProfiles(t *testing.T) {
 	t.Parallel()
@@ -35,61 +122,15 @@ func TestListProfiles(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL)
-	data, err := c.ListProfiles(context.Background())
+	profiles, err := c.ListProfiles(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if data.Active != profAlice {
-		t.Errorf("expected active=alice, got %q", data.Active)
+	if profiles.Active != profAlice {
+		t.Errorf("expected active=alice, got %q", profiles.Active)
 	}
-	if len(data.Profiles) != 2 {
-		t.Fatalf("expected 2 profiles, got %d", len(data.Profiles))
-	}
-}
-
-func TestSwitch_accepted(t *testing.T) {
-	t.Parallel()
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusAccepted)
-	}))
-	defer srv.Close()
-
-	if err := New(srv.URL).Switch(context.Background(), "bob", false); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestSwitch_conflictOnlineUsers(t *testing.T) {
-	t.Parallel()
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusConflict)
-		json.NewEncoder(w).Encode(errorResp{Error: "2 user(s) currently online"})
-	}))
-	defer srv.Close()
-
-	err := New(srv.URL).Switch(context.Background(), "bob", false)
-	if err == nil {
-		t.Fatal("expected error when users are online")
-	}
-	if !strings.Contains(err.Error(), "online") {
-		t.Errorf("expected online message, got %q", err.Error())
-	}
-}
-
-func TestSwitch_badRequest(t *testing.T) {
-	t.Parallel()
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(errorResp{Error: "unknown profile"})
-	}))
-	defer srv.Close()
-
-	err := New(srv.URL).Switch(context.Background(), "nobody", false)
-	if err == nil {
-		t.Fatal("expected error for bad request")
+	if len(profiles.Profiles) != 2 {
+		t.Fatalf("expected 2 profiles, got %d", len(profiles.Profiles))
 	}
 }
 
@@ -107,40 +148,12 @@ func TestVersions(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	data, err := New(srv.URL).Versions(context.Background())
+	versions, err := New(srv.URL).Versions(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if data.Active != verFoundry14 || len(data.Installed) != 2 {
-		t.Errorf("unexpected data: %+v", data)
-	}
-}
-
-func TestDownload_accepted(t *testing.T) {
-	t.Parallel()
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusAccepted)
-	}))
-	defer srv.Close()
-
-	if err := New(srv.URL).Download(context.Background(), verFoundry14, ""); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestDownload_badGatewayRelaysError(t *testing.T) {
-	t.Parallel()
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadGateway)
-		json.NewEncoder(w).Encode(errorResp{Error: "no source for 9.9.9"})
-	}))
-	defer srv.Close()
-
-	err := New(srv.URL).Download(context.Background(), "9.9.9", "")
-	if err == nil || !strings.Contains(err.Error(), "no source") {
-		t.Errorf("expected relayed error, got %v", err)
+	if versions.Active != verFoundry14 || len(versions.Installed) != 2 {
+		t.Errorf("unexpected data: %+v", versions)
 	}
 }
 
@@ -156,12 +169,12 @@ func TestLogs(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	data, err := New(srv.URL).Logs(context.Background(), 10)
+	logs, err := New(srv.URL).Logs(context.Background(), 10)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(data.Lines) != 2 {
-		t.Errorf("expected 2 lines, got %+v", data.Lines)
+	if len(logs.Lines) != 2 {
+		t.Errorf("expected 2 lines, got %+v", logs.Lines)
 	}
 }
 
@@ -180,12 +193,12 @@ func TestEvents(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	data, err := New(srv.URL).Events(context.Background(), 5)
+	events, err := New(srv.URL).Events(context.Background(), 5)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if data.Next != 6 || len(data.Events) != 1 || data.Events[0].Kind != "crash" {
-		t.Errorf("unexpected events data: %+v", data)
+	if events.Next != 6 || len(events.Events) != 1 || events.Events[0].Kind != "crash" {
+		t.Errorf("unexpected events data: %+v", events)
 	}
 }
 
@@ -207,92 +220,15 @@ func TestStatus(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	data, err := New(srv.URL).Status(context.Background())
+	status, err := New(srv.URL).Status(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if data.Active != profAlice || data.Version != "13.351" {
-		t.Errorf("unexpected data: %+v", data)
+	if status.Active != profAlice || status.Version != "13.351" {
+		t.Errorf("unexpected data: %+v", status)
 	}
-	if !data.Online || data.World != "my-world" || data.Users != 2 ||
-		data.SystemVersion != "4.16.1" {
-		t.Errorf("expected live status fields, got %+v", data)
-	}
-}
-
-func postRestart(
-	t *testing.T,
-	status int,
-	body errorResp,
-	force bool,
-) (gotPath string, gotForce bool, err error) {
-	t.Helper()
-
-	var sent restartBody
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotPath = r.URL.Path
-		_ = json.NewDecoder(r.Body).Decode(&sent)
-		w.WriteHeader(status)
-		if body.Error != "" {
-			_ = json.NewEncoder(w).Encode(body)
-		}
-	}))
-	defer srv.Close()
-
-	return gotPath, sent.Force, New(srv.URL).Restart(context.Background(), force)
-}
-
-func TestRestartAccepted(t *testing.T) {
-	t.Parallel()
-
-	for _, force := range []bool{false, true} {
-		path, sentForce, err := postRestart(t, http.StatusAccepted, errorResp{}, force)
-		if err != nil {
-			t.Fatalf("force=%v: unexpected error: %v", force, err)
-		}
-		if path != "/restart" {
-			t.Fatalf("posted to %q, want /restart", path)
-		}
-		if sentForce != force {
-			t.Fatalf("force sent as %v, want %v", sentForce, force)
-		}
-	}
-}
-
-func TestRestartRelaysTheManagersReason(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name        string
-		status      int
-		body        errorResp
-		wantMessage string
-	}{
-		{
-			name:        "players online",
-			status:      http.StatusConflict,
-			body:        errorResp{Error: "2 user(s) currently online"},
-			wantMessage: "online",
-		},
-		{
-			name:        "a failed reset",
-			status:      http.StatusInternalServerError,
-			body:        errorResp{Error: "failed to request a restart"},
-			wantMessage: "failed to request",
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			_, _, err := postRestart(t, testCase.status, testCase.body, false)
-			if err == nil {
-				t.Fatal("expected an error")
-			}
-			if !strings.Contains(err.Error(), testCase.wantMessage) {
-				t.Fatalf("err = %q, want it to mention %q", err.Error(), testCase.wantMessage)
-			}
-		})
+	if !status.Online || status.World != "my-world" || status.Users != 2 ||
+		status.SystemVersion != "4.16.1" {
+		t.Errorf("expected live status fields, got %+v", status)
 	}
 }
