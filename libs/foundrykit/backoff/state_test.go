@@ -81,6 +81,6 @@ func TestWriteStateAtomicIsAtomic(t *testing.T) {
 	}
 	_, err = os.Stat(path + ".tmp")
 	if !os.IsNotExist(err) {
-		t.Error("tmp file should not exist after atomic write")
+		t.Error("staging file should not exist after atomic write")
 	}
 }

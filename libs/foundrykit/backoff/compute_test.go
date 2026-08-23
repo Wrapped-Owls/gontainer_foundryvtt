@@ -7,7 +7,7 @@ import (
 )
 
 func TestComputeDelaySchedule(t *testing.T) {
-	cases := []struct {
+	testCases := []struct {
 		n    int
 		want time.Duration
 	}{
@@ -23,9 +23,9 @@ func TestComputeDelaySchedule(t *testing.T) {
 		{10, 960 * time.Second},
 		{1000, 960 * time.Second},
 	}
-	for _, tc := range cases {
-		if got := computeDelay(tc.n); got != tc.want {
-			t.Errorf("computeDelay(%d) = %v, want %v", tc.n, got, tc.want)
+	for _, testCase := range testCases {
+		if got := computeDelay(testCase.n); got != testCase.want {
+			t.Errorf("computeDelay(%d) = %v, want %v", testCase.n, got, testCase.want)
 		}
 	}
 }

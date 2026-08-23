@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -35,39 +36,39 @@ func TestNoCacheMode(t *testing.T) {
 }
 
 func TestPersistentSchedule(t *testing.T) {
-	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		dir := t.TempDir()
+		m := &Tracker{CacheDir: dir}
 
-	dir := t.TempDir()
-	m := &Tracker{CacheDir: dir}
+		expectedDelays := []time.Duration{0, 10 * time.Second, 20 * time.Second, 40 * time.Second}
+		for i, want := range expectedDelays {
+			d := m.OnFailure(1, 0)
+			if d.Mode != ModeBackoff {
+				t.Fatalf("iter %d: mode = %v", i, d.Mode)
+			}
+			if d.Delay != want {
+				t.Fatalf("iter %d: delay = %v want %v", i, d.Delay, want)
+			}
+			if d.State.ConsecutiveFailures != i+1 {
+				t.Fatalf("iter %d: counter = %d want %d", i, d.State.ConsecutiveFailures, i+1)
+			}
+		}
 
-	expectedDelays := []time.Duration{0, 10 * time.Second, 20 * time.Second, 40 * time.Second}
-	for i, want := range expectedDelays {
-		d := m.OnFailure(1, 0)
-		if d.Mode != ModeBackoff {
-			t.Fatalf("iter %d: mode = %v", i, d.Mode)
+		b, err := os.ReadFile(filepath.Join(dir, stateFile))
+		if err != nil {
+			t.Fatal(err)
 		}
-		if d.Delay != want {
-			t.Fatalf("iter %d: delay = %v want %v", i, d.Delay, want)
+		var raw map[string]any
+		if err = json.Unmarshal(b, &raw); err != nil {
+			t.Fatal(err)
 		}
-		if d.State.ConsecutiveFailures != i+1 {
-			t.Fatalf("iter %d: counter = %d want %d", i, d.State.ConsecutiveFailures, i+1)
+		if raw["consecutive_failures"].(float64) != 4 {
+			t.Errorf("on-disk counter = %v, want 4", raw["consecutive_failures"])
 		}
-	}
-
-	b, err := os.ReadFile(filepath.Join(dir, stateFile))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var raw map[string]any
-	if err = json.Unmarshal(b, &raw); err != nil {
-		t.Fatal(err)
-	}
-	if raw["consecutive_failures"].(float64) != 4 {
-		t.Errorf("on-disk counter = %v, want 4", raw["consecutive_failures"])
-	}
-	if _, ok := raw["last_failure_timestamp"].(string); !ok {
-		t.Errorf("missing last_failure_timestamp")
-	}
+		if _, ok := raw["last_failure_timestamp"].(string); !ok {
+			t.Errorf("missing last_failure_timestamp")
+		}
+	})
 }
 
 func TestSleepCancellation(t *testing.T) {
