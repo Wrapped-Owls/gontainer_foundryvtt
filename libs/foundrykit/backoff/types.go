@@ -63,7 +63,6 @@ type Manager struct {
 	CacheDir string
 	// KubernetesBypass triggers the early return; NewFromEnv sets its default.
 	KubernetesBypass bool
-	Now              func() time.Time
 	// memFailures mirrors the persisted counter, and stands in for it entirely
 	// when the state file is unreachable.
 	memFailures int

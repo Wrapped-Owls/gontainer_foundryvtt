@@ -16,7 +16,7 @@ func TestConfigDefault(t *testing.T) {
 }
 
 func TestLoadFromEnvLogLevel(t *testing.T) {
-	cases := []struct {
+	testCases := []struct {
 		name  string
 		level string
 		want  Level
@@ -29,16 +29,16 @@ func TestLoadFromEnvLogLevel(t *testing.T) {
 		{"unknown-falls-back", "bogus", LevelInfo},
 		{"empty-uses-default", "", LevelInfo},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("CONTAINER_LOG_LEVEL", tc.level)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Setenv("CONTAINER_LOG_LEVEL", testCase.level)
 			t.Setenv("CONTAINER_VERBOSE", "")
 			c := Default()
 			if err := LoadFromEnv(&c); err != nil {
 				t.Fatal(err)
 			}
-			if c.Level != tc.want {
-				t.Errorf("Level = %v, want %v", c.Level, tc.want)
+			if c.Level != testCase.want {
+				t.Errorf("Level = %v, want %v", c.Level, testCase.want)
 			}
 		})
 	}
@@ -57,7 +57,6 @@ func TestLoadFromEnvVerbose(t *testing.T) {
 }
 
 func TestLoadFromEnvLogLevelOverridesVerbose(t *testing.T) {
-	// LOG_LEVEL takes precedence over VERBOSE.
 	t.Setenv("CONTAINER_VERBOSE", "1")
 	t.Setenv("CONTAINER_LOG_LEVEL", "warn")
 	c := Default()
@@ -70,7 +69,7 @@ func TestLoadFromEnvLogLevelOverridesVerbose(t *testing.T) {
 }
 
 func TestParseLevelValues(t *testing.T) {
-	cases := []struct {
+	testCases := []struct {
 		in   string
 		want Level
 	}{
@@ -83,13 +82,13 @@ func TestParseLevelValues(t *testing.T) {
 		{"err", slog.LevelError},
 		{"unknown", slog.LevelInfo},
 	}
-	for _, tc := range cases {
-		got, err := parseLevel(tc.in)
+	for _, testCase := range testCases {
+		got, err := parseLevel(testCase.in)
 		if err != nil {
-			t.Errorf("parseLevel(%q) unexpected error: %v", tc.in, err)
+			t.Errorf("parseLevel(%q) unexpected error: %v", testCase.in, err)
 		}
-		if got != tc.want {
-			t.Errorf("parseLevel(%q) = %v, want %v", tc.in, got, tc.want)
+		if got != testCase.want {
+			t.Errorf("parseLevel(%q) = %v, want %v", testCase.in, got, testCase.want)
 		}
 	}
 }

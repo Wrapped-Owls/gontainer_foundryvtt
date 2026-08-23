@@ -31,7 +31,7 @@ func (m *Manager) OnFailure(exitCode int, uptime time.Duration) Decision {
 	prev, _ := readState(statePath) // missing/corrupt -> zero value, treated as no prior failures
 	next := State{
 		ConsecutiveFailures: prev.ConsecutiveFailures + 1,
-		LastFailureTS:       m.now().UTC().Format(time.RFC3339),
+		LastFailureTS:       time.Now().UTC().Format(time.RFC3339),
 	}
 	if err := writeStateAtomic(statePath, next); err != nil {
 		return m.degraded(exitCode)
@@ -70,7 +70,7 @@ func (m *Manager) degraded(exitCode int) Decision {
 		ExitCode: exitCode,
 		State: State{
 			ConsecutiveFailures: m.memFailures,
-			LastFailureTS:       m.now().UTC().Format(time.RFC3339),
+			LastFailureTS:       time.Now().UTC().Format(time.RFC3339),
 		},
 	}
 }
@@ -95,11 +95,4 @@ func Sleep(ctx context.Context, d time.Duration) error {
 	case <-time.After(d):
 		return nil
 	}
-}
-
-func (m *Manager) now() time.Time {
-	if m.Now != nil {
-		return m.Now()
-	}
-	return time.Now()
 }

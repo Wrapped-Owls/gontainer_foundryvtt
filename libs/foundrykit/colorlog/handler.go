@@ -13,7 +13,6 @@ type handler struct {
 	name  string
 	level Level
 	out   io.Writer
-	now   func() time.Time
 	color bool
 	attrs []slog.Attr
 	group string
@@ -21,15 +20,18 @@ type handler struct {
 
 func (h *handler) Enabled(_ context.Context, lvl Level) bool { return lvl >= h.level }
 
+// linePrefixBudget covers the name, timestamp and level that precede the message.
+const linePrefixBudget = 64
+
 func (h *handler) Handle(_ context.Context, r slog.Record) error {
-	ts := h.now().Format(time.DateTime)
+	ts := time.Now().Format(time.DateTime)
 	level := strings.ToLower(r.Level.String())
 	colored := level
 	if h.color {
 		colored = colorize(r.Level) + level + ansiReset
 	}
 	var b strings.Builder
-	b.Grow(64 + len(r.Message))
+	b.Grow(linePrefixBudget + len(r.Message))
 	b.WriteString(h.name)
 	b.WriteString(" | ")
 	b.WriteString(ts)

@@ -1,8 +1,6 @@
 package backoff
 
 import (
-	"time"
-
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/confloader"
 )
 
@@ -43,6 +41,5 @@ func NewFromConfig(cfg Config) *Manager {
 	return &Manager{
 		CacheDir:         cfg.CacheDir,
 		KubernetesBypass: cfg.KubernetesBypass,
-		Now:              time.Now,
 	}
 }

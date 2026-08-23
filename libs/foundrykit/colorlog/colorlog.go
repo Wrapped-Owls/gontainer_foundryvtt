@@ -1,22 +1,9 @@
-// Package colorlog is a thin slog wrapper that emits log lines in the format:
-//
-//	NAME | YYYY-MM-DD HH:MM:SS | [level] message
-//
-// The output stream is stderr. ANSI colours are emitted only when the
-// destination is a TTY.
-//
-// Usage:
-//
-//	log := colorlog.New("Entrypoint", colorlog.LevelFromEnv())
-//	log.Info("starting container", "version", v)
-//	log.Debug("env=...")
 package colorlog
 
 import (
 	"io"
 	"log/slog"
 	"os"
-	"time"
 
 	"golang.org/x/term"
 )
@@ -32,8 +19,6 @@ type Options struct {
 	Out io.Writer
 	// Color forces colour on/off. Nil = auto-detect (TTY on Out).
 	Color *bool
-	// Now allows tests to inject a deterministic clock.
-	Now func() time.Time
 }
 
 // New constructs a *slog.Logger with the colorlog format.
@@ -46,9 +31,6 @@ func NewWithOptions(opts Options) *slog.Logger {
 	if opts.Out == nil {
 		opts.Out = os.Stderr
 	}
-	if opts.Now == nil {
-		opts.Now = time.Now
-	}
 	color := autoColor(opts.Out)
 	if opts.Color != nil {
 		color = *opts.Color
@@ -57,7 +39,6 @@ func NewWithOptions(opts Options) *slog.Logger {
 		name:  opts.Name,
 		level: opts.Level,
 		out:   opts.Out,
-		now:   opts.Now,
 		color: color,
 	})
 }
