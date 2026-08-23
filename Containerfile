@@ -51,6 +51,7 @@ COPY --from=foundry-build /out/app /nix/store
 COPY --from=foundry-build /out/root /
 
 ENV PATH=/bin \
+    LD_LIBRARY_PATH=/lib \
     FOUNDRY_DATA_PATH=/data \
     FOUNDRY_INSTALL_ROOT=/foundry \
     FOUNDRY_SOURCES_DIR=/foundry/sources \

@@ -5,6 +5,7 @@ pkgs.runCommand "foundry-runtime-deps" { } ''
   ln -s ${runtimes.bun}    $out/bun
   ln -s ${runtimes.node22} $out/node22
   ln -s ${runtimes.node24} $out/node24
+  ln -s ${pkgs.stdenv.cc.cc.lib} $out/cxxlib
   ln -s ${pkgs.cacert}     $out/cacert
   ln -s ${pkgs.tzdata}     $out/tzdata
 ''
