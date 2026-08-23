@@ -60,5 +60,6 @@ func (c *SwitchController) RequestSwitch(name string) {
 	c.SwitchCh <- name
 	if c.cancelFn != nil {
 		c.cancelFn(ErrProfileSwitch)
+		c.cancelFn = nil
 	}
 }
