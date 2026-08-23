@@ -359,3 +359,56 @@ func TestRuleFirstSourceOfKind(t *testing.T) {
 		})
 	}
 }
+
+func TestRuleHighestLocalSourceReusesAnInstalledVersion(t *testing.T) {
+	t.Parallel()
+
+	r := NewResolver("/foundry")
+	testCases := []struct {
+		name       string
+		candidates []Candidate
+		sources    []source.Source
+		wantAction Action
+		wantVer    string
+	}{
+		{
+			name:       "the highest source is already installed",
+			candidates: []Candidate{newCandidate("/foundry/foundryvtt_v14.364.0", "14.364.0")},
+			sources:    []source.Source{&fakeSource{kind: source.KindZip, version: "14.364.0"}},
+			wantAction: ActionUseExisting,
+			wantVer:    "14.364.0",
+		},
+		{
+			name:       "a newer source still upgrades",
+			candidates: []Candidate{newCandidate("/foundry/foundryvtt_v14.364.0", "14.364.0")},
+			sources:    []source.Source{&fakeSource{kind: source.KindZip, version: "14.365.0"}},
+			wantAction: ActionInstallFromSource,
+			wantVer:    "14.365.0",
+		},
+		{
+			name:       "nothing installed installs from the source",
+			sources:    []source.Source{&fakeSource{kind: source.KindZip, version: "14.364.0"}},
+			wantAction: ActionInstallFromSource,
+			wantVer:    "14.364.0",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			plan, ok := ruleHighestLocalSource(r)(
+				context.Background(), testCase.candidates, testCase.sources,
+			)
+			if !ok {
+				t.Fatal("expected the rule to produce a plan")
+			}
+			if plan.Action != testCase.wantAction {
+				t.Fatalf("action = %v, want %v", plan.Action, testCase.wantAction)
+			}
+			if plan.ResolvedVersion.String() != testCase.wantVer {
+				t.Fatalf("version = %q, want %q", plan.ResolvedVersion, testCase.wantVer)
+			}
+		})
+	}
+}
