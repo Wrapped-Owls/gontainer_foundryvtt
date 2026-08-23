@@ -30,8 +30,6 @@ func BindField[T any](ptr *T, envKey string, parse func(string) (T, error)) Bind
 			return nil
 		}
 		if parse == nil {
-			// Only works when T is string; checked at compile time by the
-			// constraint below — at runtime we use any-cast.
 			if s, ok := any(ptr).(*string); ok {
 				*s = v
 				return nil

@@ -1,16 +1,3 @@
-// Package lifecycle holds the install/upgrade decision tree and the
-// orchestration helpers that the apps/foundryctl PID 1 binary stitches
-// together at run time.
-//
-// Responsibilities are intentionally split into small, side-effect-free
-// helpers so they can be table-tested without fakes:
-//
-//   - DetectInstalled     — inspect a Foundry install root, report the
-//     version present (if any) by reading resources/app/package.json.
-//   - WriteOptions        — render config.Options to <dataPath>/Config/
-//     options.json, idempotently (no write if bytes unchanged).
-//   - WriteAdminPassword  — render hashed admin.txt (or remove it when
-//     no admin key is configured).
 package lifecycle
 
 import (

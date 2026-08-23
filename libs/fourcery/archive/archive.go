@@ -1,6 +1,3 @@
-// Package archive detects the kind of FoundryVTT release archive (Linux
-// vs Node.js) and extracts it to disk using stdlib archive/zip and
-// content sniffing — no external tools required.
 package archive
 
 import (
@@ -78,15 +75,8 @@ func Detect(path string) (Kind, error) {
 	}
 }
 
-// Extract unpacks the release at zipPath into baseDir, normalising both
-// archive layouts so the result is always:
-//
-//	<baseDir>/resources/app/main.mjs
-//	<baseDir>/resources/app/...
-//
-// For a Linux release the "resources/" prefix is preserved verbatim.
-// For a Node release the entries are placed under "resources/app/"
-// transparently.
+// Extract unpacks the release at zipPath into baseDir as <baseDir>/resources/app.
+// A Linux release keeps its "resources/" prefix; a Node release gains one.
 func Extract(zipPath, baseDir string) (Kind, error) {
 	kind, err := Detect(zipPath)
 	if err != nil {

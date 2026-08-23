@@ -7,7 +7,7 @@ import (
 )
 
 // Applicable returns the subset of patches whose Versions constraint is
-// satisfied by version. version is parsed leniently — a leading "v" or
+// satisfied by version. version is parsed leniently: a leading "v" or
 // pre-release tag is tolerated.
 func (f *File) Applicable(version string) ([]Patch, error) {
 	v, err := semver.NewVersion(version)
@@ -16,9 +16,9 @@ func (f *File) Applicable(version string) ([]Patch, error) {
 	}
 	var out []Patch
 	for _, p := range f.Patches {
-		c, err := semver.NewConstraint(p.Versions)
-		if err != nil {
-			return nil, fmt.Errorf("manifest: patch %q: %w", p.ID, err)
+		c, constraintErr := semver.NewConstraint(p.Versions)
+		if constraintErr != nil {
+			return nil, fmt.Errorf("manifest: patch %q: %w", p.ID, constraintErr)
 		}
 		if c.Check(v) {
 			out = append(out, p)
