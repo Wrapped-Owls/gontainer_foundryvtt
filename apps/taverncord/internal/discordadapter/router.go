@@ -47,9 +47,10 @@ func (r *Router) ApplicationCommand() *discordgo.ApplicationCommand {
 		opts = append(opts, sub.Spec())
 	}
 	return &discordgo.ApplicationCommand{
-		Name:        r.name,
-		Description: r.description,
-		Options:     opts,
+		Name:         r.name,
+		Description:  r.description,
+		Options:      opts,
+		DMPermission: new(false),
 	}
 }
 
@@ -126,8 +127,11 @@ func (r *Router) autocompleteChoices(
 }
 
 func (r *Router) hasAccess(member *discordgo.Member) bool {
-	if r.gmRoleID == "" || member == nil {
+	if r.gmRoleID == "" {
 		return true
+	}
+	if member == nil {
+		return false
 	}
 	return slices.Contains(member.Roles, r.gmRoleID)
 }
