@@ -97,6 +97,34 @@ func TestPostProfile_created(t *testing.T) {
 	}
 }
 
+func TestPostProfile_responseReflectsPersistedProfile(t *testing.T) {
+	t.Parallel()
+
+	ps := &stubProfiles{}
+	srv := serveHandlers(t, &stubSupervisor{}, nil, ps)
+	b, _ := json.Marshal(profile.Profile{
+		Name: profBob, DataPath: "/d/bob",
+		AdminKey: "s3cret", ManifestPath: "/evil/manifest.yaml",
+	})
+	resp, err := srv.Client().Post(srv.URL+"/profiles", "application/json", bytes.NewReader(b))
+	if err != nil {
+		t.Fatalf("post profile: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.StatusCode)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var got profileDetail
+	if err = json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.ManifestPath != "" || got.HasAdminKey {
+		t.Errorf("response echoes unsanitized input: %+v", got)
+	}
+}
+
 func TestPostProfile_conflict(t *testing.T) {
 	t.Parallel()
 

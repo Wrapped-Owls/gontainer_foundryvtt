@@ -2,7 +2,9 @@ package procloop
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profloader"
@@ -20,6 +22,15 @@ func (r *Runner) CreateProfile(p profile.Profile) error {
 	if p.Name == "" || p.DataPath == "" {
 		return fmt.Errorf("%w: name and dataPath are required", profile.ErrInvalid)
 	}
+	if !filepath.IsAbs(p.DataPath) || hasParentSegment(p.DataPath) {
+		return fmt.Errorf(
+			"%w: dataPath must be an absolute path with no .. segment",
+			profile.ErrInvalid,
+		)
+	}
+	p.AdminKey = "" // AdminKey, salt and manifest path come only from file/env, never this API
+	p.AdminPasswordSalt = ""
+	p.ManifestPath = ""
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.indexOf(p.Name) >= 0 {
@@ -72,12 +83,14 @@ func (r *Runner) persistProfiles(profiles []profile.Profile) error {
 }
 
 func (r *Runner) indexOf(name string) int {
-	for i := range r.state.Profiles {
-		if r.state.Profiles[i].Name == name {
-			return i
-		}
-	}
-	return -1
+	return slices.IndexFunc(
+		r.state.Profiles,
+		func(p profile.Profile) bool { return p.Name == name },
+	)
+}
+
+func hasParentSegment(path string) bool {
+	return slices.Contains(strings.Split(path, string(filepath.Separator)), "..")
 }
 
 func applyOverrides(dst *profile.Profile, src profile.Profile) {
