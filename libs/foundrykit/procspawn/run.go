@@ -10,35 +10,15 @@ import (
 	"syscall"
 )
 
-// Run launches the child described by spec, forwards configured signals
-// from the parent to the child's process group, blocks until either the
-// child exits or ctx is done, and returns the child exit code.
-//
-// Exit code semantics:
-//   - normal exit              → child exit code (0..255)
-//   - killed by signal N       → 128 + N (mirrors bash convention)
-//   - failed to start          → -1, err non-nil
-//   - ctx cancelled before exit → child is signalled (SIGTERM) and we still
-//     wait for it; the returned exit code is whatever the child reports
+// Run launches spec's child, forwards signals to its process group, and blocks
+// until the child exits or ctx is done. A cancelled ctx signals the child and
+// still waits for it, so the reported code is always the child's own. A child
+// that fails to start reports -1 with a non-nil error.
 func Run(ctx context.Context, spec Spec) (int, error) {
 	if spec.Path == "" {
 		return -1, errors.New("procspawn: Spec.Path is required")
 	}
-	if spec.Env == nil {
-		spec.Env = FilterEnv(os.Environ(), DefaultPasslist)
-	}
-	if spec.ForwardSignals == nil {
-		spec.ForwardSignals = []os.Signal{syscall.SIGTERM, syscall.SIGINT}
-	}
-	if spec.Stdin == nil {
-		spec.Stdin = os.Stdin
-	}
-	if spec.Stdout == nil {
-		spec.Stdout = os.Stdout
-	}
-	if spec.Stderr == nil {
-		spec.Stderr = os.Stderr
-	}
+	spec = spec.withDefaults()
 
 	cmd := exec.CommandContext(ctx, spec.Path, spec.Args...)
 	cmd.Env = spec.Env
@@ -93,14 +73,26 @@ func Run(ctx context.Context, spec Spec) (int, error) {
 	}
 	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 		ws := exitErr.Sys().(syscall.WaitStatus)
-		switch {
-		case ws.Signaled():
-			return 128 + int(ws.Signal()), nil
-		case ws.Exited():
-			return ws.ExitStatus(), nil
-		default:
-			return -1, exitErr
+		if code, ok := exitCodeFromWaitStatus(ws); ok {
+			return code, nil
 		}
+		return -1, exitErr
 	}
 	return -1, err
+}
+
+// signalExitBase mirrors the shell convention for a signal death.
+const signalExitBase = 128
+
+// exitCodeFromWaitStatus reports the child's exit code, or ok false when the
+// status is neither an exit nor a signal death.
+func exitCodeFromWaitStatus(ws syscall.WaitStatus) (code int, ok bool) {
+	switch {
+	case ws.Signaled():
+		return signalExitBase + int(ws.Signal()), true
+	case ws.Exited():
+		return ws.ExitStatus(), true
+	default:
+		return -1, false
+	}
 }
