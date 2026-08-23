@@ -17,7 +17,7 @@ func TestMatchCandidate(t *testing.T) {
 		newCandidate("/c", "nightly"),
 	}
 
-	tests := []struct {
+	testCases := []struct {
 		name     string
 		desired  string
 		wantPath string
@@ -26,12 +26,12 @@ func TestMatchCandidate(t *testing.T) {
 		{"major.minor match no patch", "14.361", "/a"},
 		{"raw string match", "nightly", "/c"},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			c := matchCandidate(candidates, version.Parse(tt.desired))
-			if c == nil || c.Path != tt.wantPath {
-				t.Errorf("want path %q, got %v", tt.wantPath, c)
+			c := matchCandidate(candidates, version.Parse(testCase.desired))
+			if c == nil || c.Path != testCase.wantPath {
+				t.Errorf("want path %q, got %v", testCase.wantPath, c)
 			}
 		})
 	}

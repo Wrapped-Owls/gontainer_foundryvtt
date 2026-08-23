@@ -5,7 +5,7 @@ import "testing"
 func TestVersionParse(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
+	testCases := []struct {
 		name       string
 		input      string
 		wantStr    string
@@ -19,19 +19,19 @@ func TestVersionParse(t *testing.T) {
 		{"empty is zero", "", "", true, false},
 		{"whitespace trimmed", "  14.361.2  ", "14.361.2", false, true},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			v := Parse(tt.input)
-			if v.String() != tt.wantStr {
-				t.Errorf("String() = %q, want %q", v.String(), tt.wantStr)
+			v := Parse(testCase.input)
+			if v.String() != testCase.wantStr {
+				t.Errorf("String() = %q, want %q", v.String(), testCase.wantStr)
 			}
-			if v.IsZero() != tt.wantZero {
-				t.Errorf("IsZero() = %v, want %v", v.IsZero(), tt.wantZero)
+			if v.IsZero() != testCase.wantZero {
+				t.Errorf("IsZero() = %v, want %v", v.IsZero(), testCase.wantZero)
 			}
 			hasParsed := v.parsed != nil
-			if hasParsed != tt.wantParsed {
-				t.Errorf("parsed non-nil = %v, want %v", hasParsed, tt.wantParsed)
+			if hasParsed != testCase.wantParsed {
+				t.Errorf("parsed non-nil = %v, want %v", hasParsed, testCase.wantParsed)
 			}
 		})
 	}
@@ -40,7 +40,7 @@ func TestVersionParse(t *testing.T) {
 func TestVersionHasPatch(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
+	testCases := []struct {
 		input string
 		want  bool
 	}{
@@ -50,11 +50,11 @@ func TestVersionHasPatch(t *testing.T) {
 		{"14", false},
 		{"", false},
 	}
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.input, func(t *testing.T) {
 			t.Parallel()
-			if got := Parse(tt.input).HasPatch(); got != tt.want {
-				t.Errorf("Parse(%q).HasPatch() = %v, want %v", tt.input, got, tt.want)
+			if got := Parse(testCase.input).HasPatch(); got != testCase.want {
+				t.Errorf("Parse(%q).HasPatch() = %v, want %v", testCase.input, got, testCase.want)
 			}
 		})
 	}
@@ -63,7 +63,7 @@ func TestVersionHasPatch(t *testing.T) {
 func TestVersionCompare(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
+	testCases := []struct {
 		name string
 		a, b string
 		want int
@@ -78,12 +78,12 @@ func TestVersionCompare(t *testing.T) {
 		{"both non-semver", "foo", "bar", 0},
 		{"both empty", "", "", 0},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			got := Parse(tt.a).Compare(Parse(tt.b))
-			if got != tt.want {
-				t.Errorf("Parse(%q).Compare(Parse(%q)) = %d, want %d", tt.a, tt.b, got, tt.want)
+			got := Parse(testCase.a).Compare(Parse(testCase.b))
+			if got != testCase.want {
+				t.Errorf("Parse(%q).Compare(Parse(%q)) = %d, want %d", testCase.a, testCase.b, got, testCase.want)
 			}
 		})
 	}
@@ -92,7 +92,7 @@ func TestVersionCompare(t *testing.T) {
 func TestVersionMatches(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
+	testCases := []struct {
 		actual, desired string
 		want            bool
 	}{
@@ -107,13 +107,13 @@ func TestVersionMatches(t *testing.T) {
 		{"nightly", "nightly", true},
 		{"nightly", "14.361", false},
 	}
-	for _, tt := range tests {
-		t.Run(tt.actual+"/"+tt.desired, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.actual+"/"+testCase.desired, func(t *testing.T) {
 			t.Parallel()
-			got := Parse(tt.actual).Matches(Parse(tt.desired))
-			if got != tt.want {
+			got := Parse(testCase.actual).Matches(Parse(testCase.desired))
+			if got != testCase.want {
 				t.Errorf("Parse(%q).Matches(Parse(%q)) = %v, want %v",
-					tt.actual, tt.desired, got, tt.want)
+					testCase.actual, testCase.desired, got, testCase.want)
 			}
 		})
 	}
@@ -122,7 +122,7 @@ func TestVersionMatches(t *testing.T) {
 func TestVersionDirName(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
+	testCases := []struct {
 		input string
 		want  string
 	}{
@@ -130,11 +130,11 @@ func TestVersionDirName(t *testing.T) {
 		{"14.361", "foundryvtt_v14.361.0"},
 		{"nightly", "foundryvtt_vnightly"},
 	}
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.input, func(t *testing.T) {
 			t.Parallel()
-			if got := Parse(tt.input).DirName(); got != tt.want {
-				t.Errorf("Parse(%q).DirName() = %q, want %q", tt.input, got, tt.want)
+			if got := Parse(testCase.input).DirName(); got != testCase.want {
+				t.Errorf("Parse(%q).DirName() = %q, want %q", testCase.input, got, testCase.want)
 			}
 		})
 	}

@@ -8,8 +8,6 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/fourcery/version"
 )
 
-// runRules
-
 func TestRunRules_FirstSucceeds(t *testing.T) {
 	t.Parallel()
 
@@ -57,12 +55,10 @@ func TestRunRules_AllFail(t *testing.T) {
 	}
 }
 
-// ruleUseMatchingCandidate
-
 func TestRuleUseMatchingCandidate(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
+	testCases := []struct {
 		name       string
 		desired    string
 		candidates []Candidate
@@ -89,13 +85,13 @@ func TestRuleUseMatchingCandidate(t *testing.T) {
 			wantOk:     false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			r := ruleUseMatchingCandidate(version.Parse(tt.desired))
-			plan, ok := r(context.Background(), tt.candidates, nil)
-			if ok != tt.wantOk {
-				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
+			r := ruleUseMatchingCandidate(version.Parse(testCase.desired))
+			plan, ok := r(context.Background(), testCase.candidates, nil)
+			if ok != testCase.wantOk {
+				t.Fatalf("ok = %v, want %v", ok, testCase.wantOk)
 			}
 			if !ok {
 				return
@@ -103,20 +99,18 @@ func TestRuleUseMatchingCandidate(t *testing.T) {
 			if plan.Action != ActionUseExisting {
 				t.Errorf("action = %v, want UseExisting", plan.Action)
 			}
-			if plan.ResolvedVersion.String() != tt.wantVer {
-				t.Errorf("version = %q, want %q", plan.ResolvedVersion, tt.wantVer)
+			if plan.ResolvedVersion.String() != testCase.wantVer {
+				t.Errorf("version = %q, want %q", plan.ResolvedVersion, testCase.wantVer)
 			}
 		})
 	}
 }
 
-// ruleMatchingSource
-
 func TestRuleMatchingSource(t *testing.T) {
 	t.Parallel()
 
 	r := NewResolver("/foundry")
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		desired string
 		sources []source.Source
@@ -151,34 +145,32 @@ func TestRuleMatchingSource(t *testing.T) {
 			wantOk:  false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			plan, ok := ruleMatchingSource(
 				r,
-				version.Parse(tt.desired),
+				version.Parse(testCase.desired),
 			)(
 				context.Background(),
 				nil,
-				tt.sources,
+				testCase.sources,
 			)
-			if ok != tt.wantOk {
-				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
+			if ok != testCase.wantOk {
+				t.Fatalf("ok = %v, want %v", ok, testCase.wantOk)
 			}
-			if ok && plan.Source.Kind() != tt.wantKnd {
-				t.Errorf("kind = %v, want %v", plan.Source.Kind(), tt.wantKnd)
+			if ok && plan.Source.Kind() != testCase.wantKnd {
+				t.Errorf("kind = %v, want %v", plan.Source.Kind(), testCase.wantKnd)
 			}
 		})
 	}
 }
 
-// ruleUnknownVersionSource
-
 func TestRuleUnknownVersionSource(t *testing.T) {
 	t.Parallel()
 
 	r := NewResolver("/foundry")
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		sources []source.Source
 		wantOk  bool
@@ -201,8 +193,8 @@ func TestRuleUnknownVersionSource(t *testing.T) {
 			wantOk:  false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			plan, ok := ruleUnknownVersionSource(
 				r,
@@ -210,10 +202,10 @@ func TestRuleUnknownVersionSource(t *testing.T) {
 			)(
 				context.Background(),
 				nil,
-				tt.sources,
+				testCase.sources,
 			)
-			if ok != tt.wantOk {
-				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
+			if ok != testCase.wantOk {
+				t.Fatalf("ok = %v, want %v", ok, testCase.wantOk)
 			}
 			if ok && plan.Action != ActionInstallFromSource {
 				t.Errorf("action = %v, want InstallFromSource", plan.Action)
@@ -222,13 +214,11 @@ func TestRuleUnknownVersionSource(t *testing.T) {
 	}
 }
 
-// ruleHighestLocalSource
-
 func TestRuleHighestLocalSource(t *testing.T) {
 	t.Parallel()
 
 	r := NewResolver("/foundry")
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		sources []source.Source
 		wantOk  bool
@@ -265,29 +255,27 @@ func TestRuleHighestLocalSource(t *testing.T) {
 			wantOk:  false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			plan, ok := ruleHighestLocalSource(r)(context.Background(), nil, tt.sources)
-			if ok != tt.wantOk {
-				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
+			plan, ok := ruleHighestLocalSource(r)(context.Background(), nil, testCase.sources)
+			if ok != testCase.wantOk {
+				t.Fatalf("ok = %v, want %v", ok, testCase.wantOk)
 			}
 			if !ok {
 				return
 			}
-			if plan.ResolvedVersion.String() != tt.wantVer {
-				t.Errorf("version = %q, want %q", plan.ResolvedVersion, tt.wantVer)
+			if plan.ResolvedVersion.String() != testCase.wantVer {
+				t.Errorf("version = %q, want %q", plan.ResolvedVersion, testCase.wantVer)
 			}
 		})
 	}
 }
 
-// ruleLatestCandidate
-
 func TestRuleLatestCandidate(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
+	testCases := []struct {
 		name       string
 		candidates []Candidate
 		wantOk     bool
@@ -305,12 +293,12 @@ func TestRuleLatestCandidate(t *testing.T) {
 			wantOk:     false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			plan, ok := ruleLatestCandidate()(context.Background(), tt.candidates, nil)
-			if ok != tt.wantOk {
-				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
+			plan, ok := ruleLatestCandidate()(context.Background(), testCase.candidates, nil)
+			if ok != testCase.wantOk {
+				t.Fatalf("ok = %v, want %v", ok, testCase.wantOk)
 			}
 			if !ok {
 				return
@@ -318,20 +306,18 @@ func TestRuleLatestCandidate(t *testing.T) {
 			if plan.Action != ActionUseExisting {
 				t.Errorf("action = %v, want UseExisting", plan.Action)
 			}
-			if plan.ResolvedVersion.String() != tt.wantVer {
-				t.Errorf("version = %q, want %q", plan.ResolvedVersion, tt.wantVer)
+			if plan.ResolvedVersion.String() != testCase.wantVer {
+				t.Errorf("version = %q, want %q", plan.ResolvedVersion, testCase.wantVer)
 			}
 		})
 	}
 }
 
-// ruleFirstSourceOfKind
-
 func TestRuleFirstSourceOfKind(t *testing.T) {
 	t.Parallel()
 
 	r := NewResolver("/foundry")
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		kind    source.Kind
 		sources []source.Source
@@ -360,12 +346,12 @@ func TestRuleFirstSourceOfKind(t *testing.T) {
 			wantOk:  false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			plan, ok := ruleFirstSourceOfKind(r, tt.kind)(context.Background(), nil, tt.sources)
-			if ok != tt.wantOk {
-				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
+			plan, ok := ruleFirstSourceOfKind(r, testCase.kind)(context.Background(), nil, testCase.sources)
+			if ok != testCase.wantOk {
+				t.Fatalf("ok = %v, want %v", ok, testCase.wantOk)
 			}
 			if ok && plan.Action != ActionInstallFromSource {
 				t.Errorf("action = %v, want InstallFromSource", plan.Action)

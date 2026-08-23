@@ -72,7 +72,7 @@ func TestRequest_EncodesBody(t *testing.T) {
 }
 
 func TestRequest_DefaultErrorOnHTTPStatus(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name   string
 		status int
 	}{
@@ -82,10 +82,10 @@ func TestRequest_DefaultErrorOnHTTPStatus(t *testing.T) {
 		{"502 bad gateway", http.StatusBadGateway},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			cc, srv := testConfig(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(tt.status)
+				w.WriteHeader(testCase.status)
 			}))
 			defer srv.Close()
 
@@ -94,7 +94,7 @@ func TestRequest_DefaultErrorOnHTTPStatus(t *testing.T) {
 				Path:   "/test",
 			})
 			if err == nil {
-				t.Fatalf("expected error for status %d", tt.status)
+				t.Fatalf("expected error for status %d", testCase.status)
 			}
 		})
 	}
@@ -103,7 +103,7 @@ func TestRequest_DefaultErrorOnHTTPStatus(t *testing.T) {
 func TestRequest_OnStatusCallback(t *testing.T) {
 	sentinel := errors.New("custom not found")
 
-	tests := []struct {
+	testCases := []struct {
 		name     string
 		callback func(*http.Response) error
 		wantErr  error
@@ -119,8 +119,8 @@ func TestRequest_OnStatusCallback(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			cc, srv := testConfig(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusNotFound)
 			}))
@@ -130,12 +130,12 @@ func TestRequest_OnStatusCallback(t *testing.T) {
 				Method: http.MethodGet,
 				Path:   "/item",
 				OnStatus: map[int]func(*http.Response) error{
-					404: tt.callback,
+					404: testCase.callback,
 				},
 			})
-			if tt.wantErr != nil {
-				if !errors.Is(err, tt.wantErr) {
-					t.Fatalf("error = %v, want %v", err, tt.wantErr)
+			if testCase.wantErr != nil {
+				if !errors.Is(err, testCase.wantErr) {
+					t.Fatalf("error = %v, want %v", err, testCase.wantErr)
 				}
 			} else if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -145,7 +145,6 @@ func TestRequest_OnStatusCallback(t *testing.T) {
 }
 
 func TestRequest_ConnectionError(t *testing.T) {
-	// Use a closed server to simulate connection refused.
 	cc, srv := testConfig(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
 	srv.Close()
 
