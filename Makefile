@@ -1,7 +1,8 @@
 WORKSPACE_MODULES := libs/foundrykit libs/fourcery libs/foundrypatch libs/foundryruntime apps/foundrymanager apps/taverncord apps/foundryctl
 
-.PHONY: all vet test fmt tidy tidy-tests test-modules workspace-modules clean nix-image nix-hash docker-image
+IMAGE_TAG ?= foundryvtt-docker:dev
 
+.PHONY: all vet test race fmt tidy image nix-hash
 
 all: vet test
 
@@ -15,6 +16,11 @@ test:
 	  (cd $$d && go test ./...) || exit 1; \
 	done
 
+race:
+	@for d in $(WORKSPACE_MODULES); do \
+	  (cd $$d && go test -race ./...) || exit 1; \
+	done
+
 fmt:
 	golines --base-formatter=gofumpt -w .
 
@@ -23,14 +29,9 @@ tidy:
 	  (cd $$d && go mod tidy) || exit 1; \
 	done
 
-nix-image:
-	nix build .#image --no-link --print-out-paths
+image:
+	docker build -f Containerfile -t $(IMAGE_TAG) .
 
 # Recompute vendorHash after go.mod / go.sum changes.
-# Run this whenever you add or remove a Go dependency.
 nix-hash:
 	nix run .#update-vendor-hash
-
-# Build the Docker image using plain Docker (non-Nix alternative to nix-image).
-docker-image:
-	docker build -f Containerfile -t foundryvtt-docker:dev .
