@@ -1,5 +1,3 @@
-// Command foundryctl is the PID 1 entrypoint for the foundryvtt-docker
-// container. Sub-commands: run (default), healthcheck, options, version.
 package main
 
 import (
@@ -8,6 +6,7 @@ import (
 	"os"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundryctl/cmd"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/cliargs"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/colorlog"
 )
 
@@ -15,11 +14,7 @@ func main() {
 	logger := colorlog.New("foundryctl", colorlog.LevelFromEnv())
 	slog.SetDefault(logger)
 
-	args := os.Args[1:]
-	sub := "run"
-	if len(args) > 0 && !startsWithFlag(args[0]) {
-		sub, args = args[0], args[1:]
-	}
+	sub, args := cliargs.SplitSubcommand(os.Args[1:], "run")
 
 	switch sub {
 	case "run":
@@ -35,5 +30,3 @@ func main() {
 		os.Exit(2)
 	}
 }
-
-func startsWithFlag(s string) bool { return len(s) > 0 && s[0] == '-' }
