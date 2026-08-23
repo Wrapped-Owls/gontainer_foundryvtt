@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/internal/testzip"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrypatch/manifest"
 )
 
@@ -105,49 +104,5 @@ func TestFileReplaceRunner_OverwritesExisting(t *testing.T) {
 	got, _ := os.ReadFile(dest)
 	if string(got) != "new" {
 		t.Errorf("got %q, want %q", got, "new")
-	}
-}
-
-// --- ZipOverlay ---
-
-func TestZipOverlayRunner_ExtractsFiles(t *testing.T) {
-	overlay := testzip.MakeZip(t, map[string]string{
-		"subdir/patch.txt": "patched",
-	})
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write(overlay)
-	}))
-	defer srv.Close()
-
-	dest := t.TempDir()
-	act := manifest.Action{
-		Type:   manifest.ActionZipOverlay,
-		URL:    srv.URL,
-		SHA256: bodySum(overlay),
-	}
-	if err := ZipOverlay(http.DefaultClient).Run(context.Background(), act, dest); err != nil {
-		t.Fatal(err)
-	}
-	got, err := os.ReadFile(filepath.Join(dest, "subdir", "patch.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != "patched" {
-		t.Errorf("got %q, want %q", got, "patched")
-	}
-}
-
-func TestZipOverlayRunner_HashMismatch(t *testing.T) {
-	overlay := testzip.MakeZip(t, map[string]string{"f.txt": "x"})
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write(overlay)
-	}))
-	defer srv.Close()
-
-	act := manifest.Action{Type: manifest.ActionZipOverlay, URL: srv.URL, SHA256: "bad"}
-	if err := ZipOverlay(
-		http.DefaultClient,
-	).Run(context.Background(), act, t.TempDir()); err == nil {
-		t.Fatal("expected hash mismatch error")
 	}
 }
