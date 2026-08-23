@@ -17,6 +17,8 @@ type HTTPDoer = action.HTTPDoer
 
 var ErrHashMismatch = action.ErrHashMismatch
 
+const patchFetchTimeout = 30 * time.Minute // matches libs/fourcery/source: payloads can be large
+
 type Applier struct {
 	Root       string
 	HTTPClient HTTPDoer
@@ -76,7 +78,7 @@ func shortHash(h string) string {
 
 func (a *Applier) initRunners() {
 	if a.HTTPClient == nil {
-		a.HTTPClient = http.DefaultClient
+		a.HTTPClient = &http.Client{Timeout: patchFetchTimeout}
 	}
 	a.runners = map[manifest.ActionType]action.Runner{
 		manifest.ActionDownload:    action.Download(a.HTTPClient),
