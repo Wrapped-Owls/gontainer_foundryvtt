@@ -1,4 +1,3 @@
-// Package activate prepares Foundry VTT for launch by running the activation sequence.
 package activate
 
 import (
@@ -64,6 +63,7 @@ func PrepareProfile(
 			step.Options(),
 			step.License(),
 			step.Patches(),
+			step.JSRuntime(),
 		)
 	}
 	return step.RunFrom(

@@ -8,28 +8,26 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
-// Switcher is the minimal interface consumed by dashboard HTTP handlers.
-// Manager satisfies this interface implicitly — no import of manager/ needed.
-type Switcher interface {
+// Supervisor is declared here, and satisfied implicitly, so the dashboard never
+// imports the manager.
+type Supervisor interface {
 	RequestSwitch(name string) error
+	RequestRestart() error
 	Active() string
 	Version() string
 	FoundryStatus(ctx context.Context) (foundrystatus.Status, error)
 }
 
-// VersionManager lists and acquires Foundry installs for the versions endpoints.
 type VersionManager interface {
 	Installed(ctx context.Context) ([]string, error)
 	Download(ctx context.Context, version, url string) error
 }
 
-// LogReader exposes recent Foundry log lines and detected events.
 type LogReader interface {
 	Logs(n int) []string
 	Events(cursor int) ([]logstore.Event, int)
 }
 
-// ProfileStore reads and mutates the configured profiles for the CRUD endpoints.
 type ProfileStore interface {
 	ListProfiles() []profile.Profile
 	GetProfile(name string) (profile.Profile, bool)
@@ -77,6 +75,10 @@ func toDetail(p profile.Profile) profileDetail {
 type switchBody struct {
 	Profile string `json:"profile"`
 	Force   bool   `json:"force"`
+}
+
+type restartBody struct {
+	Force bool `json:"force"`
 }
 
 type versionsResponse struct {

@@ -1,4 +1,3 @@
-// Package dashboard provides the profile-switching HTTP dashboard.
 package dashboard
 
 import (
@@ -20,13 +19,13 @@ func Start(
 	ctx context.Context,
 	logger *slog.Logger,
 	addr string,
-	sw Switcher,
+	sup Supervisor,
 	vm VersionManager,
 	ps ProfileStore,
 	lr LogReader,
 ) <-chan error {
 	mux := http.NewServeMux()
-	registerHandlers(mux, sw, vm, ps, logger)
+	registerHandlers(mux, sup, vm, ps, logger)
 	registerLogHandlers(mux, lr, logger)
 
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
@@ -40,7 +39,6 @@ func Start(
 	}()
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("dashboard server stopped", "err", err)
 			errCh <- err
 		}
 		close(errCh)

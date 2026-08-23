@@ -1,4 +1,4 @@
-# Wiring — constructor injection and the activation step sequence
+# Wiring - constructor injection and the activation step sequence
 
 This project uses **constructor injection** throughout: every dependency (logger, config, HTTP
 client) is passed as a function parameter, never read from a package-level global. For the
@@ -56,11 +56,14 @@ func Run(ctx context.Context, logger *slog.Logger, steps ...Step) (State, error)
 func Prepare(ctx context.Context, logger *slog.Logger) (State, error) {
     return step.Run(ctx, logger,
         step.AppConfig(),   // loads config + env
+        step.EnsureDirs(),  // creates dirs a volume mount may have shadowed
         step.Secrets(),     // loads secfuse secrets
         step.Install(),     // resolves or downloads Foundry installation
         step.Options(),     // prepares runtime options
+        step.License(),     // caches / restores the license for this version
         step.Patches(),     // applies foundrypatch manifest
-        step.JSRuntime(),   // detects bun or node
+        step.JSRuntime(),   // picks bun, or the node major the version needs
+        step.Profiles(),    // loads the profile list and the last active one
     )
 }
 ```
@@ -71,7 +74,7 @@ other and receive everything they need through `*State` and the `*slog.Logger`.
 ## Adding a new step
 
 1. Create `apps/foundryctl/internal/activate/step/<name>.go`.
-2. Implement `Step` — either a struct with `Apply` or a factory function returning one.
+2. Implement `Step` - either a struct with `Apply` or a factory function returning one.
 3. Read from `s` for context; write only to the fields this step owns.
 4. Add it to `activate.Prepare` at the correct position in the pipeline.
 
@@ -102,6 +105,6 @@ environment.
 
 ## See also
 
-- [`../patterns/bootstrap-and-di.md`](../patterns/bootstrap-and-di.md) — activation sequence
+- [`../patterns/bootstrap-and-di.md`](../patterns/bootstrap-and-di.md) - activation sequence
   recipe.
-- [`startup.md`](startup.md) — the full boot sequence from `main()` to process launch.
+- [`startup.md`](startup.md) - the full boot sequence from `main()` to process launch.

@@ -1,9 +1,10 @@
-// Package config holds the foundrymanager runtime configuration.
 package config
 
 // Config holds foundrymanager-specific configuration.
 type Config struct {
-	ProfilesFile     string
+	ProfilesFile string
+	// DefaultProfile activates when no last-active one is recorded.
+	DefaultProfile   string
 	DashboardAddr    string
 	LogAlertPatterns []string
 }

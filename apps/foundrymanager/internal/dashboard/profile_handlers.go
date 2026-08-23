@@ -11,7 +11,7 @@ import (
 
 func registerProfileHandlers(
 	mux *http.ServeMux,
-	sw Switcher,
+	sup Supervisor,
 	ps ProfileStore,
 	logger *slog.Logger,
 ) {
@@ -21,7 +21,7 @@ func registerProfileHandlers(
 		for i, p := range profiles {
 			refs[i] = profileRef{Name: p.Name, Label: p.Label, Version: p.Version, World: p.World}
 		}
-		writeJSON(w, logger, http.StatusOK, profilesResponse{Active: sw.Active(), Profiles: refs})
+		writeJSON(w, logger, http.StatusOK, profilesResponse{Active: sup.Active(), Profiles: refs})
 	})
 	mux.HandleFunc("GET /profiles/{name}", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := ps.GetProfile(r.PathValue("name"))
@@ -64,7 +64,6 @@ func registerProfileHandlers(
 	})
 }
 
-// decodeProfile parses a profile request body, writing a 400 on failure.
 func decodeProfile(
 	w http.ResponseWriter,
 	r *http.Request,

@@ -9,7 +9,6 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
 
-// stubActivator implements Activator for testing.
 type stubActivator struct {
 	result State
 	err    error
@@ -34,11 +33,13 @@ func makeRunnerWithProfiles(profiles []profile.Profile) *Runner {
 }
 
 func TestFindProfile_found(t *testing.T) {
+	t.Parallel()
+
 	r := makeRunnerWithProfiles([]profile.Profile{
-		{Name: "alice", DataPath: "/data/alice"},
-		{Name: "bob", DataPath: "/data/bob"},
+		{Name: profAlice, DataPath: "/data/alice"},
+		{Name: profBob, DataPath: "/data/bob"},
 	})
-	p, ok := r.findProfile("bob")
+	p, ok := r.findProfile(profBob)
 	if !ok {
 		t.Fatal("expected bob to be found")
 	}
@@ -48,7 +49,9 @@ func TestFindProfile_found(t *testing.T) {
 }
 
 func TestFindProfile_notFound(t *testing.T) {
-	r := makeRunnerWithProfiles([]profile.Profile{{Name: "alice"}})
+	t.Parallel()
+
+	r := makeRunnerWithProfiles([]profile.Profile{{Name: profAlice}})
 	_, ok := r.findProfile("charlie")
 	if ok {
 		t.Error("expected not found")
@@ -56,11 +59,13 @@ func TestFindProfile_notFound(t *testing.T) {
 }
 
 func TestApplySwitch_success(t *testing.T) {
+	t.Parallel()
+
 	activator := &stubActivator{result: State{Version: "14.1.0"}}
-	r := makeRunnerWithProfiles([]profile.Profile{{Name: "alice"}})
+	r := makeRunnerWithProfiles([]profile.Profile{{Name: profAlice}})
 	r.activator = activator
 
-	r.ctrl.SwitchCh <- "alice"
+	r.ctrl.SwitchCh <- profAlice
 
 	if err := r.applySwitch(context.Background()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -71,36 +76,40 @@ func TestApplySwitch_success(t *testing.T) {
 	if r.state.Version != "14.1.0" {
 		t.Errorf("state not updated: got version %q", r.state.Version)
 	}
-	if r.ctrl.Active() != "alice" {
+	if r.ctrl.Active() != profAlice {
 		t.Errorf("active profile not set: got %q", r.ctrl.Active())
 	}
 }
 
 func TestApplySwitch_preservesLiveProfileList(t *testing.T) {
+	t.Parallel()
+
 	// The activator resolves against its own boot-time snapshot, so its
 	// returned State.Profiles is stale; applySwitch must not let it clobber
 	// edits/creates/deletes applied to the manager's live list since boot.
-	activator := &stubActivator{result: State{Version: "13.0.0"}}
+	activator := &stubActivator{result: State{Version: verOlder}}
 	r := makeRunnerWithProfiles([]profile.Profile{
-		{Name: "alice", Version: "13.0.0"},
-		{Name: "bob", Version: "14.0.0"},
+		{Name: profAlice, Version: verOlder},
+		{Name: profBob, Version: verProfile},
 	})
 	r.activator = activator
 
-	r.ctrl.SwitchCh <- "alice"
+	r.ctrl.SwitchCh <- profAlice
 	if err := r.applySwitch(context.Background()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(r.state.Profiles) != 2 {
 		t.Fatalf("live profile list lost after switch: %+v", r.state.Profiles)
 	}
-	if bob, ok := r.GetProfile("bob"); !ok || bob.Version != "14.0.0" {
+	if bob, ok := r.GetProfile(profBob); !ok || bob.Version != verProfile {
 		t.Errorf("bob's data not preserved: %+v ok=%v", bob, ok)
 	}
 }
 
 func TestApplySwitch_unknownProfile(t *testing.T) {
-	r := makeRunnerWithProfiles([]profile.Profile{{Name: "alice"}})
+	t.Parallel()
+
+	r := makeRunnerWithProfiles([]profile.Profile{{Name: profAlice}})
 	r.ctrl.SwitchCh <- "unknown"
 	if err := r.applySwitch(context.Background()); err == nil {
 		t.Error("expected error for unknown profile")
@@ -108,6 +117,8 @@ func TestApplySwitch_unknownProfile(t *testing.T) {
 }
 
 func TestApplySwitch_noPending(t *testing.T) {
+	t.Parallel()
+
 	r := makeRunnerWithProfiles(nil)
 	if err := r.applySwitch(context.Background()); err != nil {
 		t.Errorf("expected nil error when no switch pending: %v", err)

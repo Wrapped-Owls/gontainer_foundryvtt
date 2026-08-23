@@ -34,7 +34,6 @@ func (v Version) String() string {
 	return v.raw
 }
 
-// IsZero reports whether v is the zero value (empty / unset).
 func (v Version) IsZero() bool { return v.raw == "" }
 
 // HasPatch reports whether the original input contains a patch component
@@ -85,4 +84,12 @@ func (v Version) DirName() string {
 		return "foundryvtt_v" + v.parsed.String()
 	}
 	return "foundryvtt_v" + v.raw
+}
+
+// Major returns the semver major, or 0 when unparseable.
+func (v Version) Major() uint64 {
+	if v.parsed == nil {
+		return 0
+	}
+	return v.parsed.Major()
 }

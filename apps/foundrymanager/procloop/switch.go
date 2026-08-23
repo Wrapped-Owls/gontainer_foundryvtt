@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profloader"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/procspawn"
 )
 
-// applySwitch reads the pending switch request and updates r.state.
 func (r *Runner) applySwitch(ctx context.Context) error {
 	select {
 	case name := <-r.ctrl.SwitchCh:
@@ -32,8 +30,8 @@ func (r *Runner) applySwitch(ctx context.Context) error {
 		r.state = newState
 		r.mu.Unlock()
 		r.ctrl.SetActive(name)
-		if err := profloader.WriteActive(r.cfg.ProfilesFile, name); err != nil {
-			r.logger.Warn("failed to persist active profile", "profile", name, "err", err)
+		if writeErr := profloader.WriteActive(r.cfg.ProfilesFile, name); writeErr != nil {
+			r.logger.Warn("failed to persist active profile", "profile", name, "err", writeErr)
 		}
 		return nil
 	default:
@@ -44,22 +42,16 @@ func (r *Runner) applySwitch(ctx context.Context) error {
 func (r *Runner) findProfile(name string) (profile.Profile, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	for _, p := range r.state.Profiles {
-		if p.Name == name {
-			return p, true
-		}
-	}
-	return profile.Profile{}, false
+	return profile.ByName(r.state.Profiles, name)
 }
 
 func (r *Runner) buildSpec() procspawn.Spec {
 	r.mu.RLock()
 	s := r.state
 	r.mu.RUnlock()
-	mainScript := filepath.Join(s.InstallRoot, s.MainScript)
 	return procspawn.Spec{
 		Path:   s.JSRuntime.Path,
-		Args:   BuildArgs(s.JSRuntime.Kind, mainScript, s.DataPath, s.Port, s.World),
+		Args:   BuildArgs(s),
 		Dir:    s.InstallRoot,
 		Stdout: io.MultiWriter(os.Stdout, r.logs),
 		Stderr: io.MultiWriter(os.Stderr, r.logs),

@@ -1,7 +1,7 @@
-// Package profloader loads Profile lists from JSON files and environment variables.
 package profloader
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"os"
@@ -15,15 +15,19 @@ type profileFile struct {
 	Profiles []profile.Profile `json:"profiles"`
 }
 
-// FromFile reads profiles and the last-active name from a JSON file at path.
-// Returns nil profiles and empty active without error when the file does not exist.
+// FromFile treats a missing or empty file as no profiles, not an error: the image
+// pre-creates it, and empty-as-malformed would fail activation before Foundry starts.
 func FromFile(path string) (profiles []profile.Profile, active string, err error) {
-	data, err := os.ReadFile(path) //nolint:gosec // path is sourced from operator-controlled config
+	var data []byte
+	data, err = os.ReadFile(path) //nolint:gosec // path is sourced from operator-controlled config
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, "", nil
 	}
 	if err != nil {
 		return nil, "", err
+	}
+	if len(bytes.TrimSpace(data)) == 0 {
+		return nil, "", nil
 	}
 	var f profileFile
 	if err = json.Unmarshal(data, &f); err != nil {
@@ -32,10 +36,9 @@ func FromFile(path string) (profiles []profile.Profile, active string, err error
 	return f.Profiles, f.Active, nil
 }
 
-// WriteProfiles persists the given profiles into the JSON file at path,
-// preserving the recorded active profile name. Creates the file if absent.
+// WriteProfiles preserves the recorded active name; it creates the file if absent.
 func WriteProfiles(path string, profiles []profile.Profile) error {
-	data, _ := os.ReadFile(path) //nolint:gosec
+	data, _ := os.ReadFile(path) //nolint:gosec // path is sourced from operator-controlled config
 	var f profileFile
 	if len(data) > 0 {
 		_ = json.Unmarshal(data, &f)
@@ -48,10 +51,9 @@ func WriteProfiles(path string, profiles []profile.Profile) error {
 	return os.WriteFile(path, append(out, '\n'), fsperm.Secret)
 }
 
-// WriteActive persists the active profile name into the JSON file at path,
-// preserving any existing profiles array. Creates the file if absent.
+// WriteActive preserves any existing profiles array; it creates the file if absent.
 func WriteActive(path, name string) error {
-	data, _ := os.ReadFile(path) //nolint:gosec
+	data, _ := os.ReadFile(path) //nolint:gosec // path is sourced from operator-controlled config
 	var f profileFile
 	if len(data) > 0 {
 		_ = json.Unmarshal(data, &f)
@@ -61,5 +63,5 @@ func WriteActive(path, name string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(out, '\n'), 0o600) //nolint:gosec
+	return os.WriteFile(path, append(out, '\n'), fsperm.Secret)
 }

@@ -1,104 +1,41 @@
 package dashboard
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 )
 
-// msgInvalidBody is the error returned when a request body fails to decode.
 const msgInvalidBody = "invalid request body"
 
 func registerHandlers(
 	mux *http.ServeMux,
-	sw Switcher,
+	sup Supervisor,
 	vm VersionManager,
 	ps ProfileStore,
 	logger *slog.Logger,
 ) {
-	registerProfileHandlers(mux, sw, ps, logger)
-	registerSwitchHandlers(mux, sw, logger)
-	registerVersionHandlers(mux, sw, vm, logger)
+	registerProfileHandlers(mux, sup, ps, logger)
+	registerSwitchHandlers(mux, sup, logger)
+	registerVersionHandlers(mux, sup, vm, logger)
 }
 
-func registerSwitchHandlers(mux *http.ServeMux, sw Switcher, logger *slog.Logger) {
-	mux.HandleFunc("POST /switch", func(w http.ResponseWriter, r *http.Request) {
-		var body switchBody
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeJSON(w, logger, http.StatusBadRequest, errorResponse{Error: msgInvalidBody})
-			return
-		}
-		if !body.Force {
-			if st, err := sw.FoundryStatus(r.Context()); err == nil && st.Active && st.Users > 0 {
-				writeJSON(w, logger, http.StatusConflict, errorResponse{Error: fmt.Sprintf(
-					"%d user(s) currently online; resend with force to switch anyway", st.Users,
-				)})
-				return
-			}
-		}
-		if err := sw.RequestSwitch(body.Profile); err != nil {
-			writeJSON(w, logger, http.StatusBadRequest, errorResponse{Error: err.Error()})
-			return
-		}
-		w.WriteHeader(http.StatusAccepted)
-	})
-	mux.HandleFunc("GET /status", func(w http.ResponseWriter, r *http.Request) {
-		resp := statusResponse{Active: sw.Active(), Version: sw.Version()}
-		if st, err := sw.FoundryStatus(r.Context()); err == nil {
-			resp.Online = true
-			resp.WorldActive = st.Active
-			resp.World = st.World
-			resp.System = st.System
-			resp.SystemVersion = st.SystemVersion
-			resp.Users = st.Users
-			resp.UptimeMS = st.UptimeMS
-			if st.Version != "" {
-				resp.Version = st.Version
-			}
-		}
-		writeJSON(w, logger, http.StatusOK, resp)
-	})
+// onlinePlayers treats an unreachable server as zero, so a restart is never blocked
+// by the outage it would fix.
+func onlinePlayers(ctx context.Context, sup Supervisor) int {
+	st, err := sup.FoundryStatus(ctx)
+	if err != nil || !st.Active {
+		return 0
+	}
+	return st.Users
 }
 
-func registerVersionHandlers(
-	mux *http.ServeMux,
-	sw Switcher,
-	vm VersionManager,
-	logger *slog.Logger,
-) {
-	mux.HandleFunc("GET /versions", func(w http.ResponseWriter, r *http.Request) {
-		installed, err := vm.Installed(r.Context())
-		if err != nil {
-			logger.Error("dashboard: list versions failed", "err", err)
-			writeJSON(w, logger, http.StatusInternalServerError,
-				errorResponse{Error: "failed to list installed versions"})
-			return
-		}
-		writeJSON(
-			w,
-			logger,
-			http.StatusOK,
-			versionsResponse{Active: sw.Version(), Installed: installed},
-		)
-	})
-	mux.HandleFunc("POST /versions/download", func(w http.ResponseWriter, r *http.Request) {
-		var body downloadBody
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeJSON(w, logger, http.StatusBadRequest, errorResponse{Error: msgInvalidBody})
-			return
-		}
-		if body.Version == "" {
-			writeJSON(w, logger, http.StatusBadRequest, errorResponse{Error: "version is required"})
-			return
-		}
-		if err := vm.Download(r.Context(), body.Version, body.URL); err != nil {
-			logger.Error("dashboard: download version failed", "version", body.Version, "err", err)
-			writeJSON(w, logger, http.StatusBadGateway, errorResponse{Error: err.Error()})
-			return
-		}
-		w.WriteHeader(http.StatusAccepted)
-	})
+func writeOnlineConflict(w http.ResponseWriter, logger *slog.Logger, online int) {
+	writeJSON(w, logger, http.StatusConflict, errorResponse{Error: fmt.Sprintf(
+		"%d user(s) currently online; resend with force to proceed anyway", online,
+	)})
 }
 
 func writeJSON(w http.ResponseWriter, logger *slog.Logger, status int, v any) {

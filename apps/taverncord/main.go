@@ -34,18 +34,16 @@ func main() {
 		os.Exit(exitUsage)
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+
 	fc := foundryclient.New(cfg.Foundry.DashboardURL)
 	cmds := command.New(fc, logger)
 
-	router := discordadapter.NewRouter("foundry", "Manage Foundry VTT profiles", logger).
+	router := discordadapter.NewRouter(ctx, "foundry", "Manage Foundry VTT profiles", logger).
 		Use(cfg.Discord.GMRoleID).
-		Add(discordadapter.ListCmd(cmds)).
-		Add(discordadapter.SwitchCmd(cmds)).
-		Add(discordadapter.StatusCmd(cmds)).
-		Add(discordadapter.VersionsCmd(cmds)).
-		Add(discordadapter.DownloadCmd(cmds)).
-		Add(discordadapter.ProfileEditCmd(cmds)).
-		Add(discordadapter.LogsCmd(cmds))
+		Add(discordadapter.ReadCommands(cmds)...).
+		Add(discordadapter.ControlCommands(cmds)...)
 
 	adapter, err := discordadapter.New(cfg, router, logger)
 	if err != nil {
@@ -59,10 +57,7 @@ func main() {
 	}
 	defer func() { _ = adapter.Close() }()
 
-	logger.Info("taverncord bot running — press Ctrl+C to stop")
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
-	defer stop()
+	logger.Info("taverncord bot running - press Ctrl+C to stop")
 
 	var wg sync.WaitGroup
 	if cfg.Foundry.AlertChannelID != "" {

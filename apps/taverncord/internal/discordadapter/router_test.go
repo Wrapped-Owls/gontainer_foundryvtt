@@ -3,53 +3,20 @@ package discordadapter
 import (
 	"context"
 	"log/slog"
+	"slices"
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/command"
 )
 
-// stubSubCmd is a test SubCommand that records calls.
-type stubSubCmd struct {
-	name   string
-	called bool
-}
+func TestApplicationCommandContainsSubcommands(t *testing.T) {
+	t.Parallel()
 
-func (s *stubSubCmd) Spec() *discordgo.ApplicationCommandOption {
-	return &discordgo.ApplicationCommandOption{
-		Type:        discordgo.ApplicationCommandOptionSubCommand,
-		Name:        s.name,
-		Description: "stub",
-	}
-}
-
-func (s *stubSubCmd) Handle(_ context.Context, _ OptionMap, r command.Responder) error {
-	s.called = true
-	return r.Send(context.Background(), "ok", true)
-}
-
-// stubResponder records the last Send and Edit calls.
-type stubResponder struct {
-	content   string
-	ephemeral bool
-	edited    string
-}
-
-func (r *stubResponder) Send(_ context.Context, content string, ephemeral bool) error {
-	r.content = content
-	r.ephemeral = ephemeral
-	return nil
-}
-
-func (r *stubResponder) Edit(_ context.Context, content string) error {
-	r.edited = content
-	return nil
-}
-
-func TestRouter_ApplicationCommand_containsSubcommands(t *testing.T) {
-	router := NewRouter("foundry", "desc", slog.Default()).
-		Add(&stubSubCmd{name: "list"}).
-		Add(&stubSubCmd{name: "status"})
+	router := NewRouter(context.Background(), "foundry", "desc", slog.Default()).
+		Add(subCommand{name: subList, description: "stub"}).
+		Add(subCommand{name: subStatus, description: "stub"})
 
 	cmd := router.ApplicationCommand()
 	if cmd.Name != "foundry" {
@@ -60,32 +27,141 @@ func TestRouter_ApplicationCommand_containsSubcommands(t *testing.T) {
 	}
 }
 
-func TestRouter_hasAccess_noRole(t *testing.T) {
-	router := NewRouter("foundry", "desc", slog.Default())
-	i := &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{
-		Member: &discordgo.Member{Roles: []string{"other"}},
-	}}
-	if !router.hasAccess(i) {
-		t.Error("expected access when gmRoleID is empty")
+func TestRouterHasAccess(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		gmRoleID string
+		member   *discordgo.Member
+		want     bool
+	}{
+		{
+			name:   "an unset role gate lets everyone through",
+			member: &discordgo.Member{Roles: []string{roleOther}},
+			want:   true,
+		},
+		{
+			name:     "a member carrying the role is allowed",
+			gmRoleID: roleGM,
+			member:   &discordgo.Member{Roles: []string{roleOther, roleGM}},
+			want:     true,
+		},
+		{
+			name:     "a member without the role is denied",
+			gmRoleID: roleGM,
+			member:   &discordgo.Member{Roles: []string{roleOther}},
+		},
+		{
+			name:     "no member at all is allowed: the interaction is not from a guild",
+			gmRoleID: roleGM,
+			want:     true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			router := NewRouter(context.Background(), "foundry", "desc", discardLogger()).
+				Use(testCase.gmRoleID)
+			if got := router.hasAccess(testCase.member); got != testCase.want {
+				t.Fatalf("hasAccess() = %v, want %v", got, testCase.want)
+			}
+		})
 	}
 }
 
-func TestRouter_hasAccess_roleMatch(t *testing.T) {
-	router := NewRouter("foundry", "desc", slog.Default()).Use("gm-role-id")
-	i := &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{
-		Member: &discordgo.Member{Roles: []string{"other", "gm-role-id"}},
+func TestAutocompleteChoicesRespectsTheRoleGate(t *testing.T) {
+	t.Parallel()
+
+	client := &stubFoundryClient{profiles: command.ProfilesData{
+		Profiles: []profile.Profile{{Name: profAlice}, {Name: profBob}},
 	}}
-	if !router.hasAccess(i) {
-		t.Error("expected access for member with GM role")
+	router := NewRouter(context.Background(), "foundry", "desc", discardLogger()).
+		Use(roleGM).
+		Add(ControlCommands(command.New(client, discardLogger()))...)
+
+	testCases := []struct {
+		name    string
+		member  *discordgo.Member
+		subName string
+		focused string
+		want    []string
+	}{
+		{
+			name:    "a member without the GM role is offered nothing",
+			member:  &discordgo.Member{Roles: []string{"everyone"}},
+			subName: subSwitch,
+			focused: optionName,
+		},
+		{
+			name:    "a member with the GM role is offered the profiles",
+			member:  &discordgo.Member{Roles: []string{roleGM}},
+			subName: subSwitch,
+			focused: optionName,
+			want:    []string{profAlice, profBob},
+		},
+		{
+			name:    "an unknown subcommand is offered nothing",
+			member:  &discordgo.Member{Roles: []string{roleGM}},
+			subName: "nonsense",
+			focused: optionName,
+		},
+		{
+			name:    "an option with no suggester is offered nothing",
+			member:  &discordgo.Member{Roles: []string{roleGM}},
+			subName: subSwitch,
+			focused: optionForce,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			data := subData(testCase.subName, subOption(testCase.focused, true, ""))
+			got := router.autocompleteChoices(data, testCase.member)
+			if !slices.Equal(got, testCase.want) {
+				t.Fatalf("got %v, want %v", got, testCase.want)
+			}
+		})
 	}
 }
 
-func TestRouter_hasAccess_roleMismatch(t *testing.T) {
-	router := NewRouter("foundry", "desc", slog.Default()).Use("gm-role-id")
-	i := &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{
-		Member: &discordgo.Member{Roles: []string{"other"}},
-	}}
-	if router.hasAccess(i) {
-		t.Error("expected no access for member without GM role")
+func TestHandleSurvivesAPanickingInteraction(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		interaction discordgo.Interaction
+	}{
+		{
+			name: "a subcommand that panics does not end the process",
+			interaction: discordgo.Interaction{
+				Type: discordgo.InteractionApplicationCommand,
+				Data: discordgo.ApplicationCommandInteractionData{Name: "foundry"},
+			},
+		},
+		{
+			name: "an autocomplete that panics does not end the process",
+			interaction: discordgo.Interaction{
+				Type: discordgo.InteractionApplicationCommandAutocomplete,
+				Data: discordgo.ApplicationCommandInteractionData{Name: "foundry"},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			router := NewRouter(t.Context(), "foundry", "desc", slog.Default()).
+				Add(subCommand{name: subStatus, description: "stub"})
+
+			// A nil session panics on the first Discord call, which is what any
+			// handler bug would do; discordgo would carry it out of the goroutine.
+			router.Handle(nil, &discordgo.InteractionCreate{Interaction: &testCase.interaction})
+		})
 	}
 }
