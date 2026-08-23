@@ -25,6 +25,7 @@ func (h *handler) Handle(_ context.Context, r slog.Record) error {
 		ansiReset        = "\x1b[0m"
 		linePrefixBudget = 64
 	)
+
 	ts := time.Now().Format(time.DateTime)
 	level := strings.ToLower(r.Level.String())
 	colored := level
