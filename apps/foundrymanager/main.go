@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/cmd"
+	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/cliargs"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/colorlog"
 )
 
@@ -13,11 +14,7 @@ func main() {
 	logger := colorlog.New("foundrymanager", colorlog.LevelFromEnv())
 	slog.SetDefault(logger)
 
-	args := os.Args[1:]
-	sub := "run"
-	if len(args) > 0 && args[0][0] != '-' {
-		sub, args = args[0], args[1:]
-	}
+	sub, args := cliargs.SplitSubcommand(os.Args[1:], "run")
 
 	const exitUsage = 2
 	switch sub {
