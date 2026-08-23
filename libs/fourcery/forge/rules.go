@@ -65,7 +65,7 @@ func ruleUnknownVersionSource(r *Resolver, desired version.Version) rule {
 }
 
 func ruleHighestLocalSource(r *Resolver) rule {
-	return func(ctx context.Context, _ []Candidate, sources []source.Source) (Plan, bool) {
+	return func(ctx context.Context, candidates []Candidate, sources []source.Source) (Plan, bool) {
 		var best source.Source
 		var bestVer version.Version
 		for _, s := range sources {
@@ -83,6 +83,13 @@ func ruleHighestLocalSource(r *Resolver) rule {
 		}
 		if best == nil {
 			return Plan{}, false
+		}
+		if match := matchCandidate(candidates, bestVer); match != nil {
+			return Plan{
+				Action:          ActionUseExisting,
+				Candidate:       match,
+				ResolvedVersion: match.Version,
+			}, true
 		}
 		return r.planInstall(best, bestVer), true
 	}
