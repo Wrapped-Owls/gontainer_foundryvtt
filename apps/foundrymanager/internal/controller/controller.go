@@ -57,6 +57,7 @@ func (c *SwitchController) RequestRestart() bool {
 }
 
 // RequestSwitch replaces any pending switch and cancels the current session.
+// cancelFn is cleared after firing so a later RequestRestart cannot fire it again.
 func (c *SwitchController) RequestSwitch(name string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -67,5 +68,6 @@ func (c *SwitchController) RequestSwitch(name string) {
 	c.SwitchCh <- name
 	if c.cancelFn != nil {
 		c.cancelFn(ErrProfileSwitch)
+		c.cancelFn = nil
 	}
 }

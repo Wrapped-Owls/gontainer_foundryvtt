@@ -87,3 +87,70 @@ func TestRequestRestartWithoutASessionIsANoop(t *testing.T) {
 		t.Fatal("RequestRestart reported a cancelled session when none was running")
 	}
 }
+
+func TestRequestRestartAfterSwitch(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		reRegister  bool
+		wantRestart bool
+	}{
+		{
+			name:        "restart right after a switch is stale and reports no live session",
+			reRegister:  false,
+			wantRestart: false,
+		},
+		{
+			name:        "restart after a new session registers its cancel is live again",
+			reRegister:  true,
+			wantRestart: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := New()
+			_, switchCancel := context.WithCancelCause(context.Background())
+			defer switchCancel(nil)
+			var switchCause error
+			c.SetCancel(func(err error) { switchCause = err; switchCancel(err) })
+
+			c.RequestSwitch("alice")
+			if !errors.Is(switchCause, ErrProfileSwitch) {
+				t.Fatalf("switch cancel cause = %v, want %v", switchCause, ErrProfileSwitch)
+			}
+			select {
+			case name := <-c.SwitchCh:
+				if name != "alice" {
+					t.Fatalf("expected alice queued, got %q", name)
+				}
+			default:
+				t.Fatal("expected the switch to queue a name")
+			}
+
+			var restartCause error
+			if testCase.reRegister {
+				_, restartCancel := context.WithCancelCause(context.Background())
+				defer restartCancel(nil)
+				c.SetCancel(func(err error) { restartCause = err; restartCancel(err) })
+			}
+
+			got := c.RequestRestart()
+			if got != testCase.wantRestart {
+				t.Fatalf("RequestRestart() = %v, want %v", got, testCase.wantRestart)
+			}
+			if !testCase.reRegister {
+				if errors.Is(switchCause, ErrRestart) {
+					t.Fatal("restart fired the switch's stale cancel a second time")
+				}
+				return
+			}
+			if !errors.Is(restartCause, ErrRestart) {
+				t.Fatalf("restart cancel cause = %v, want %v", restartCause, ErrRestart)
+			}
+		})
+	}
+}
