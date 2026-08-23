@@ -25,6 +25,9 @@ func TestApplicationCommandContainsSubcommands(t *testing.T) {
 	if len(cmd.Options) != 2 {
 		t.Errorf("expected 2 options, got %d", len(cmd.Options))
 	}
+	if cmd.DMPermission == nil || *cmd.DMPermission {
+		t.Errorf("expected DMPermission false, got %v", cmd.DMPermission)
+	}
 }
 
 func TestRouterHasAccess(t *testing.T) {
@@ -42,6 +45,12 @@ func TestRouterHasAccess(t *testing.T) {
 			want:   true,
 		},
 		{
+			name:     "an unset role gate lets even a nil member through",
+			gmRoleID: "",
+			member:   nil,
+			want:     true,
+		},
+		{
 			name:     "a member carrying the role is allowed",
 			gmRoleID: roleGM,
 			member:   &discordgo.Member{Roles: []string{roleOther, roleGM}},
@@ -53,9 +62,9 @@ func TestRouterHasAccess(t *testing.T) {
 			member:   &discordgo.Member{Roles: []string{roleOther}},
 		},
 		{
-			name:     "no member at all is allowed: the interaction is not from a guild",
+			name:     "a nil member is denied when a role is configured: DMs carry no member",
 			gmRoleID: roleGM,
-			want:     true,
+			member:   nil,
 		},
 	}
 
@@ -120,8 +129,8 @@ func TestAutocompleteChoicesRespectsTheRoleGate(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			data := subData(testCase.subName, subOption(testCase.focused, true, ""))
-			got := router.autocompleteChoices(data, testCase.member)
+			invoked := subData(testCase.subName, subOption(testCase.focused, true, ""))
+			got := router.autocompleteChoices(invoked, testCase.member)
 			if !slices.Equal(got, testCase.want) {
 				t.Fatalf("got %v, want %v", got, testCase.want)
 			}
@@ -159,8 +168,6 @@ func TestHandleSurvivesAPanickingInteraction(t *testing.T) {
 			router := NewRouter(t.Context(), "foundry", "desc", slog.Default()).
 				Add(subCommand{name: subStatus, description: "stub"})
 
-			// A nil session panics on the first Discord call, which is what any
-			// handler bug would do; discordgo would carry it out of the goroutine.
 			router.Handle(nil, &discordgo.InteractionCreate{Interaction: &testCase.interaction})
 		})
 	}

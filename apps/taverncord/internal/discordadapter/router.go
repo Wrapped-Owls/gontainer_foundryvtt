@@ -51,9 +51,10 @@ func (r *Router) ApplicationCommand() *discordgo.ApplicationCommand {
 		opts = append(opts, sub.Spec())
 	}
 	return &discordgo.ApplicationCommand{
-		Name:        r.name,
-		Description: r.description,
-		Options:     opts,
+		Name:         r.name,
+		Description:  r.description,
+		Options:      opts,
+		DMPermission: new(false),
 	}
 }
 
@@ -70,12 +71,12 @@ func (r *Router) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	switch i.Type {
 	case discordgo.InteractionApplicationCommand:
-		if data := i.ApplicationCommandData(); data.Name == r.name {
-			r.handleCommand(s, i, data)
+		if invoked := i.ApplicationCommandData(); invoked.Name == r.name {
+			r.handleCommand(s, i, invoked)
 		}
 	case discordgo.InteractionApplicationCommandAutocomplete:
-		if data := i.ApplicationCommandData(); data.Name == r.name {
-			if err := respondChoices(s, i, r.autocompleteChoices(data, i.Member)); err != nil {
+		if invoked := i.ApplicationCommandData(); invoked.Name == r.name {
+			if err := respondChoices(s, i, r.autocompleteChoices(invoked, i.Member)); err != nil {
 				r.logger.Warn("autocomplete response failed", "err", err)
 			}
 		}
@@ -87,7 +88,7 @@ func (r *Router) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 func (r *Router) handleCommand(
 	s *discordgo.Session,
 	i *discordgo.InteractionCreate,
-	data discordgo.ApplicationCommandInteractionData,
+	invoked discordgo.ApplicationCommandInteractionData,
 ) {
 	resp := &interactionContext{session: s, interaction: i.Interaction}
 
@@ -96,7 +97,7 @@ func (r *Router) handleCommand(
 		return
 	}
 
-	inv, isSub := parseInvocation(data)
+	inv, isSub := parseInvocation(invoked)
 	if !isSub {
 		_ = resp.Send(r.ctx, "No subcommand given. Try `/foundry status`.", true)
 		return
@@ -116,13 +117,13 @@ func (r *Router) handleCommand(
 // autocompleteChoices answers Discord's as-you-type request. The role gate applies
 // here too: profile and version names are not for the whole channel to enumerate.
 func (r *Router) autocompleteChoices(
-	data discordgo.ApplicationCommandInteractionData,
+	invoked discordgo.ApplicationCommandInteractionData,
 	member *discordgo.Member,
 ) []string {
 	if !r.hasAccess(member) {
 		return nil
 	}
-	inv, isSub := parseInvocation(data)
+	inv, isSub := parseInvocation(invoked)
 	if !isSub {
 		return nil
 	}
@@ -137,9 +138,13 @@ func (r *Router) autocompleteChoices(
 	return sub.Autocomplete(r.ctx, focused, typed)
 }
 
+// hasAccess fails closed on a nil member: a DM carries no role list to check.
 func (r *Router) hasAccess(member *discordgo.Member) bool {
-	if r.gmRoleID == "" || member == nil {
+	if r.gmRoleID == "" {
 		return true
+	}
+	if member == nil {
+		return false
 	}
 	return slices.Contains(member.Roles, r.gmRoleID)
 }
