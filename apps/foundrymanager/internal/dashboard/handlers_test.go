@@ -85,7 +85,15 @@ func (s *stubProfiles) CreateProfile(
 	p profile.Profile,
 ) error {
 	s.lastCreate = p
-	return s.createErr
+	if s.createErr != nil {
+		return s.createErr
+	}
+	p.AdminKey = ""
+	p.AdminPasswordSalt = ""
+	p.ManifestPath = ""
+	s.getProfile = p
+	s.getOK = true
+	return nil
 }
 
 func (s *stubProfiles) DeleteProfile(

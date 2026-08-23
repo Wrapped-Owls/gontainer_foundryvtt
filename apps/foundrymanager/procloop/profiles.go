@@ -2,7 +2,9 @@ package procloop
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profloader"
@@ -19,12 +21,18 @@ func (r *Runner) GetProfile(name string) (profile.Profile, bool) {
 }
 
 // CreateProfile validates and appends a new profile, then persists the list.
-// It returns profile.ErrInvalid for missing required fields and
-// profile.ErrExists when a profile with the same name already exists.
+// AdminKey, AdminPasswordSalt and ManifestPath are cleared: as in applyOverrides,
+// they come from file/env only.
 func (r *Runner) CreateProfile(p profile.Profile) error {
 	if p.Name == "" || p.DataPath == "" {
 		return fmt.Errorf("%w: name and dataPath are required", profile.ErrInvalid)
 	}
+	if !filepath.IsAbs(p.DataPath) || hasParentSegment(p.DataPath) {
+		return fmt.Errorf("%w: dataPath must be an absolute path with no .. segment", profile.ErrInvalid)
+	}
+	p.AdminKey = ""
+	p.AdminPasswordSalt = ""
+	p.ManifestPath = ""
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.indexOf(p.Name) >= 0 {
@@ -88,18 +96,18 @@ func (r *Runner) persistProfiles(profiles []profile.Profile) error {
 
 // indexOf returns the position of the named profile, or -1. Caller holds r.mu.
 func (r *Runner) indexOf(name string) int {
-	for i := range r.state.Profiles {
-		if r.state.Profiles[i].Name == name {
-			return i
-		}
-	}
-	return -1
+	return slices.IndexFunc(r.state.Profiles, func(p profile.Profile) bool { return p.Name == name })
+}
+
+// hasParentSegment finds a ".." element, not the substring inside a longer name.
+func hasParentSegment(path string) bool {
+	return slices.Contains(strings.Split(path, string(filepath.Separator)), "..")
 }
 
 // applyOverrides copies the editable non-empty fields of src onto dst. Only the
 // label, version and world are editable; the data location, manifest path and
 // admin secrets are deliberately immutable here so an edit cannot repoint a
-// profile at another disk or change credentials — those come from file/env only.
+// profile at another disk or change credentials - those come from file/env only.
 func applyOverrides(dst *profile.Profile, src profile.Profile) {
 	for _, f := range []struct {
 		dst *string

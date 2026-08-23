@@ -38,6 +38,88 @@ func TestCreateProfile_persists(t *testing.T) {
 	}
 }
 
+func TestCreateProfile_sanitizesAndValidates(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		input      profile.Profile
+		wantErr    error
+		wantStored profile.Profile
+	}{
+		{
+			name: "valid create succeeds unchanged",
+			input: profile.Profile{
+				Name: profAlice, DataPath: "/d/alice", Label: "Alice", Version: verProfile, World: "w",
+			},
+			wantStored: profile.Profile{
+				Name: profAlice, DataPath: "/d/alice", Label: "Alice", Version: verProfile, World: "w",
+			},
+		},
+		{
+			name: "admin secrets and manifest path are stripped",
+			input: profile.Profile{
+				Name: profAlice, DataPath: "/d/alice",
+				AdminKey: "hijack", AdminPasswordSalt: "hijack", ManifestPath: "/evil/manifest",
+			},
+			wantStored: profile.Profile{Name: profAlice, DataPath: "/d/alice"},
+		},
+		{
+			name:    "relative dataPath rejected",
+			input:   profile.Profile{Name: profAlice, DataPath: "d/alice"},
+			wantErr: profile.ErrInvalid,
+		},
+		{
+			name:    "relative dataPath with leading .. rejected",
+			input:   profile.Profile{Name: profAlice, DataPath: "../etc"},
+			wantErr: profile.ErrInvalid,
+		},
+		{
+			name:    "dataPath with .. segment rejected",
+			input:   profile.Profile{Name: profAlice, DataPath: "/d/../etc"},
+			wantErr: profile.ErrInvalid,
+		},
+		{
+			name: "dataPath with .. inside a directory name accepted",
+			input: profile.Profile{
+				Name: profAlice, DataPath: "/data/my..world",
+			},
+			wantStored: profile.Profile{Name: profAlice, DataPath: "/data/my..world"},
+		},
+		{
+			name: "dataPath with leading .. inside a directory name accepted",
+			input: profile.Profile{
+				Name: profAlice, DataPath: "/data/..hidden",
+			},
+			wantStored: profile.Profile{Name: profAlice, DataPath: "/data/..hidden"},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := makeStore(t, "", nil)
+			err := r.CreateProfile(testCase.input)
+			if testCase.wantErr != nil {
+				if !errors.Is(err, testCase.wantErr) {
+					t.Fatalf("err = %v, want %v", err, testCase.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("create: %v", err)
+			}
+			got, ok := r.GetProfile(profAlice)
+			if !ok {
+				t.Fatal("profile not stored")
+			}
+			if got != testCase.wantStored {
+				t.Errorf("got = %+v, want %+v", got, testCase.wantStored)
+			}
+		})
+	}
+}
+
 func TestCreateProfile_validation(t *testing.T) {
 	t.Parallel()
 

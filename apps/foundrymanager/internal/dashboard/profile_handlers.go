@@ -40,7 +40,8 @@ func registerProfileHandlers(
 			writeProfileError(w, logger, "create profile", err)
 			return
 		}
-		writeJSON(w, logger, http.StatusCreated, toDetail(p))
+		created, _ := ps.GetProfile(p.Name)
+		writeJSON(w, logger, http.StatusCreated, toDetail(created))
 	})
 	mux.HandleFunc("PUT /profiles/{name}", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := decodeProfile(w, r, logger)
