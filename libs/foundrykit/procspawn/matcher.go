@@ -1,14 +1,3 @@
-// Package procspawn manages child process execution with a clean environment.
-// It:
-//
-//   - scrubs the child environment using a Matcher passlist (default:
-//     HOME, NODE_*, TZ)
-//   - executes a child process with that clean environment
-//   - forwards SIGTERM / SIGINT to the child's process group
-//   - waits for the child and propagates its exit status
-//
-// The package is intentionally tiny and depends only on the standard
-// library so that the runtime binary can pull it in at near-zero cost.
 package procspawn
 
 import "strings"
@@ -44,4 +33,5 @@ var DefaultPasslist = []Matcher{
 	ExactMatch("HOME"),
 	PrefixMatch("NODE_"),
 	ExactMatch("TZ"),
+	ExactMatch("LD_LIBRARY_PATH"),
 }

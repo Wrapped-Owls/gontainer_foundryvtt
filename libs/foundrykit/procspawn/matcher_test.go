@@ -48,17 +48,34 @@ func TestSuffixMatch(t *testing.T) {
 }
 
 func TestDefaultPasslistComposition(t *testing.T) {
-	if len(DefaultPasslist) == 0 {
-		t.Fatal("DefaultPasslist should not be empty")
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		key  string
+		want bool
+	}{
+		{name: "home reaches the child", key: "HOME", want: true},
+		{name: "node options reach the child", key: "NODE_OPTIONS", want: true},
+		{name: "timezone reaches the child", key: "TZ", want: true},
+		{name: "the loader path reaches the child", key: "LD_LIBRARY_PATH", want: true},
+		{name: "secrets never reach the child", key: "FOUNDRY_ADMIN_KEY", want: false},
+		{name: "the session never reaches the child", key: "FOUNDRY_SESSION", want: false},
 	}
-	// HOME must always pass
-	pass := false
-	for _, m := range DefaultPasslist {
-		if m.Match("HOME") {
-			pass = true
-		}
-	}
-	if !pass {
-		t.Error("DefaultPasslist should pass HOME")
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := false
+			for _, m := range DefaultPasslist {
+				if m.Match(testCase.key) {
+					got = true
+				}
+			}
+			if got != testCase.want {
+				t.Errorf("%s passes = %v, want %v", testCase.key, got, testCase.want)
+			}
+		})
 	}
 }
