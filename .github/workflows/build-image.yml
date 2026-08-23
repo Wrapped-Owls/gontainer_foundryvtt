@@ -66,7 +66,15 @@ jobs:
           fi
           docker run --rm --entrypoint /bin/node22 "$image" --version | grep -q '^v22\.'
           docker run --rm --entrypoint /bin/node24 "$image" --version | grep -q '^v24\.'
-          echo "bun $got_bun, node22 and node24 all present"
+          # Foundry's prebuilt native addons dlopen these by SONAME, which only
+          # works while they sit on LD_LIBRARY_PATH. This throws if one is gone.
+          docker run --rm --entrypoint /bin/bun "$image" -e '
+            import { dlopen, FFIType } from "bun:ffi";
+            dlopen("libstdc++.so.6", { __cxa_demangle: { args: [], returns: FFIType.ptr } });
+            for (const lib of ["libgcc_s.so.1", "libz.so.1", "libcrypto.so.3", "libssl.so.3", "libsqlite3.so.0"]) {
+              if (!require("fs").existsSync(`/lib/${lib}`)) throw new Error(`${lib} is not on the loader path`);
+            }'
+          echo "bun $got_bun, node22, node24 and the shared libraries all present"
 
       - name: Push image
         if: startsWith(github.ref, 'refs/tags/')
