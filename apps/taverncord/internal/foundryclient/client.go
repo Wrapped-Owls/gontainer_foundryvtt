@@ -2,9 +2,8 @@ package foundryclient
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/command"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/jsonhttp"
@@ -18,16 +17,27 @@ var _ command.FoundryClient = (*Client)(nil)
 
 const profilesPath = "/profiles"
 
+const dashboardRequestTimeout = 2 * time.Second
+
+const downloadRequestTimeout = 30 * time.Minute // fetch+extract before answering; see libs/fourcery/source
+
 func New(baseURL string) *Client {
 	return &Client{cfg: jsonhttp.ClientConfig{
 		BaseURL: baseURL,
-		HTTP:    &http.Client{},
+		HTTP:    &http.Client{Timeout: downloadRequestTimeout},
 	}}
 }
 
+func withDashboardTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, dashboardRequestTimeout)
+}
+
 func (c *Client) ListProfiles(ctx context.Context) (command.ProfilesData, error) {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	resp, err := jsonhttp.Request[profilesResp, struct{}](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,
@@ -40,52 +50,12 @@ func (c *Client) ListProfiles(ctx context.Context) (command.ProfilesData, error)
 	return command.ProfilesData{Active: resp.Active, Profiles: resp.Profiles}, nil
 }
 
-func (c *Client) Switch(ctx context.Context, name string, interrupt command.Interrupt) error {
-	body := switchBody{Profile: name, Force: interrupt == command.InterruptAlways}
-	_, err := jsonhttp.Request[struct{}, switchBody](ctx, c.cfg, jsonhttp.RequestConfig[switchBody]{
-		Method: http.MethodPost,
-		Path:   "/switch",
-		Body:   &body,
-		OnStatus: map[int]func(*http.Response) error{
-			http.StatusBadRequest: decodeError,
-			http.StatusConflict:   decodeError,
-			http.StatusAccepted:   func(_ *http.Response) error { return nil },
-		},
-	})
-	return err
-}
-
-func (c *Client) Restart(ctx context.Context, interrupt command.Interrupt) error {
-	body := restartBody{Force: interrupt == command.InterruptAlways}
-	_, err := jsonhttp.Request[struct{}, restartBody](
-		ctx,
-		c.cfg,
-		jsonhttp.RequestConfig[restartBody]{
-			Method: http.MethodPost,
-			Path:   "/restart",
-			Body:   &body,
-			OnStatus: map[int]func(*http.Response) error{
-				http.StatusBadRequest:          decodeError,
-				http.StatusConflict:            decodeError,
-				http.StatusInternalServerError: decodeError,
-				http.StatusAccepted:            func(_ *http.Response) error { return nil },
-			},
-		},
-	)
-	return err
-}
-
-func decodeError(r *http.Response) error {
-	var e errorResp
-	if jsonErr := json.NewDecoder(r.Body).Decode(&e); jsonErr == nil && e.Error != "" {
-		return fmt.Errorf("%s", e.Error)
-	}
-	return fmt.Errorf("request rejected with status %d", r.StatusCode)
-}
-
 func (c *Client) Versions(ctx context.Context) (command.VersionsData, error) {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	resp, err := jsonhttp.Request[versionsResp, struct{}](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,
@@ -98,28 +68,12 @@ func (c *Client) Versions(ctx context.Context) (command.VersionsData, error) {
 	return command.VersionsData{Active: resp.Active, Installed: resp.Installed}, nil
 }
 
-func (c *Client) Download(ctx context.Context, version, url string) error {
-	body := downloadBody{Version: version, URL: url}
-	_, err := jsonhttp.Request[struct{}, downloadBody](
-		ctx,
-		c.cfg,
-		jsonhttp.RequestConfig[downloadBody]{
-			Method: http.MethodPost,
-			Path:   "/versions/download",
-			Body:   &body,
-			OnStatus: map[int]func(*http.Response) error{
-				http.StatusBadRequest: decodeError,
-				http.StatusBadGateway: decodeError,
-				http.StatusAccepted:   func(_ *http.Response) error { return nil },
-			},
-		},
-	)
-	return err
-}
-
 func (c *Client) Status(ctx context.Context) (command.StatusData, error) {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	resp, err := jsonhttp.Request[statusResp, struct{}](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,

@@ -10,8 +10,11 @@ import (
 )
 
 func (c *Client) Logs(ctx context.Context, tail int) (command.LogsData, error) {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	resp, err := jsonhttp.Request[logsResp, struct{}](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,
@@ -25,8 +28,11 @@ func (c *Client) Logs(ctx context.Context, tail int) (command.LogsData, error) {
 }
 
 func (c *Client) Events(ctx context.Context, since int) (command.EventsData, error) {
+	callCtx, cancel := withDashboardTimeout(ctx)
+	defer cancel()
+
 	resp, err := jsonhttp.Request[eventsResp, struct{}](
-		ctx,
+		callCtx,
 		c.cfg,
 		jsonhttp.RequestConfig[struct{}]{
 			Method: http.MethodGet,
