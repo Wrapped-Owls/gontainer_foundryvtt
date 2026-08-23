@@ -1,16 +1,6 @@
 { pkgs, repoSrc }:
 
-# foundryctl lives in apps/foundryctl inside a multi-module workspace.
-# We use buildGoModule (pure, cacheable) instead of __impure = true.
-#
-# The FOD (fixed-output derivation) phase runs `go work vendor` from the
-# workspace root so all five modules are vendored together. The main build
-# then compiles only apps/foundryctl with -mod=vendor (set automatically
-# by buildGoModule when vendorHash is non-null).
-#
-# After any go.mod / go.sum change, regenerate vendorHash:
-#   nix build .#foundryctl 2>&1 | grep 'got:' | awk '{print $2}'
-# then paste the printed hash below.
+# Vendors the whole go.work workspace; `make nix-hash` regenerates vendorHash.
 
 pkgs.buildGoModule {
   pname = "foundryctl";

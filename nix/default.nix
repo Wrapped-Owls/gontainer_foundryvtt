@@ -1,9 +1,9 @@
 { pkgs, src }:
 
 let
-  foundryctl       = import ./modules/foundryctl.nix { inherit pkgs; repoSrc = src; };
-  taverncord       = import ./modules/taverncord.nix  { inherit pkgs; repoSrc = src; };
-  updateVendorHash = import ./apps/update-vendor-hash.nix { inherit pkgs; };
+  foundryctl       = import ./packages/foundryctl.nix { inherit pkgs; repoSrc = src; };
+  taverncord       = import ./packages/taverncord.nix  { inherit pkgs; repoSrc = src; };
+  updateVendorHash = import ./packages/update-vendor-hash.nix { inherit pkgs; };
 in {
   devShells.default = pkgs.mkShell {
     packages = with pkgs; [

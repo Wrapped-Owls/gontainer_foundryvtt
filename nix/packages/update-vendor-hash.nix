@@ -20,8 +20,8 @@ pkgs.writeShellApplication {
 
     # All nix modules that embed the workspace vendorHash.
     nix_files=(
-      "$root/nix/modules/foundryctl.nix"
-      "$root/nix/modules/taverncord.nix"
+      "$root/nix/packages/foundryctl.nix"
+      "$root/nix/packages/taverncord.nix"
     )
 
     echo "==> Resetting vendorHash to fakeHash in all modules..."
