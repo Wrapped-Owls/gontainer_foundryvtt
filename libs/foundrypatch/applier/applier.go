@@ -20,9 +20,12 @@ type HTTPDoer = action.HTTPDoer
 // inspect download errors.
 var ErrHashMismatch = action.ErrHashMismatch
 
+// patchFetchTimeout matches libs/fourcery/source: payloads can be large.
+const patchFetchTimeout = 30 * time.Minute
+
 // Applier executes patch actions. Root is the Foundry install root that
-// every action's Dest is resolved relative to. HTTPClient defaults to
-// http.DefaultClient.
+// every action's Dest is resolved relative to. HTTPClient defaults to a
+// client with patchFetchTimeout when none is injected.
 type Applier struct {
 	Root       string
 	HTTPClient HTTPDoer
@@ -91,7 +94,7 @@ func shortHash(h string) string {
 
 func (a *Applier) initRunners() {
 	if a.HTTPClient == nil {
-		a.HTTPClient = http.DefaultClient
+		a.HTTPClient = &http.Client{Timeout: patchFetchTimeout}
 	}
 	a.runners = map[manifest.ActionType]action.Runner{
 		manifest.ActionDownload:    action.Download(a.HTTPClient),
