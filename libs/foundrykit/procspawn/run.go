@@ -14,7 +14,7 @@ func Run(ctx context.Context, spec Spec) (int, error) {
 	if spec.Path == "" {
 		return -1, errors.New("procspawn: Spec.Path is required")
 	}
-	spec = applySpecDefaults(spec)
+	spec = spec.withDefaults()
 
 	cmd := exec.CommandContext(ctx, spec.Path, spec.Args...)
 	cmd.Env = spec.Env
@@ -71,25 +71,6 @@ func Run(ctx context.Context, spec Spec) (int, error) {
 		return -1, exitErr
 	}
 	return -1, err
-}
-
-func applySpecDefaults(spec Spec) Spec {
-	if spec.Env == nil {
-		spec.Env = FilterEnv(os.Environ(), DefaultPasslist)
-	}
-	if spec.ForwardSignals == nil {
-		spec.ForwardSignals = []os.Signal{syscall.SIGTERM, syscall.SIGINT}
-	}
-	if spec.Stdin == nil {
-		spec.Stdin = os.Stdin
-	}
-	if spec.Stdout == nil {
-		spec.Stdout = os.Stdout
-	}
-	if spec.Stderr == nil {
-		spec.Stderr = os.Stderr
-	}
-	return spec
 }
 
 func exitCodeFromWaitStatus(ws syscall.WaitStatus) (code int, ok bool) {

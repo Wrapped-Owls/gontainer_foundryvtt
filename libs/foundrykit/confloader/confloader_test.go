@@ -1,4 +1,4 @@
-package confloader_test
+package confloader
 
 import (
 	"errors"
@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/confloader"
 )
 
 type testConfig struct {
@@ -20,7 +18,7 @@ func defaultTestConfig() testConfig {
 }
 
 func TestLoadMissingFileUsesDefaults(t *testing.T) {
-	cfg, err := confloader.Load(
+	cfg, err := Load(
 		filepath.Join(t.TempDir(), "nonexistent.json"),
 		defaultTestConfig(),
 		func(c *testConfig) error { return nil },
@@ -36,12 +34,12 @@ func TestLoadMissingFileUsesDefaults(t *testing.T) {
 func TestLoadAppliesEnvViaBindField(t *testing.T) {
 	t.Setenv("TEST_HOST", "remotehost")
 
-	cfg, err := confloader.Load(
+	cfg, err := Load(
 		filepath.Join(t.TempDir(), "nonexistent.json"),
 		defaultTestConfig(),
 		func(c *testConfig) error {
-			return confloader.BindEnv(
-				confloader.BindField(&c.Host, "TEST_HOST", nil),
+			return BindEnv(
+				BindField(&c.Host, "TEST_HOST", nil),
 			)
 		},
 	)
@@ -63,7 +61,7 @@ func TestLoadReadsJSONFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := confloader.Load(
+	cfg, err := Load(
 		cfgFile,
 		defaultTestConfig(),
 		func(c *testConfig) error { return nil },
@@ -80,7 +78,7 @@ func TestBindEnvStopsOnFirstError(t *testing.T) {
 	callCount := 0
 	sentinel := errors.New("first binder error")
 
-	err := confloader.BindEnv(
+	err := BindEnv(
 		func() error { callCount++; return sentinel },
 		func() error { callCount++; return fmt.Errorf("second binder error") },
 	)
@@ -98,7 +96,7 @@ func TestBindRequiredMissingVar(t *testing.T) {
 		t.Fatal(err)
 	}
 	var s string
-	err := confloader.BindEnv(confloader.BindRequired(&s, "REQUIRED_TEST_VAR", nil))
+	err := BindEnv(BindRequired(&s, "REQUIRED_TEST_VAR", nil))
 	if err == nil {
 		t.Fatal("expected error for missing required var")
 	}
@@ -107,7 +105,7 @@ func TestBindRequiredMissingVar(t *testing.T) {
 func TestBindRequiredPresentVar(t *testing.T) {
 	t.Setenv("REQUIRED_TEST_VAR", "hello")
 	var s string
-	err := confloader.BindEnv(confloader.BindRequired(&s, "REQUIRED_TEST_VAR", nil))
+	err := BindEnv(BindRequired(&s, "REQUIRED_TEST_VAR", nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

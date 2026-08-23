@@ -1,6 +1,8 @@
 package procspawn
 
 import (
+	"os"
+	"slices"
 	"syscall"
 	"testing"
 )
@@ -13,13 +15,7 @@ func TestConfigDefault(t *testing.T) {
 	if len(cfg.ForwardSignals) == 0 {
 		t.Error("Default ForwardSignals should not be empty")
 	}
-	found := false
-	for _, s := range cfg.ForwardSignals {
-		if s == syscall.SIGTERM {
-			found = true
-		}
-	}
-	if !found {
+	if !slices.Contains(cfg.ForwardSignals, os.Signal(syscall.SIGTERM)) {
 		t.Error("Default ForwardSignals must include SIGTERM")
 	}
 }
