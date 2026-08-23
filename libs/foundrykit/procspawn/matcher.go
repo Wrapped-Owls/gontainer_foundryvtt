@@ -28,4 +28,5 @@ var DefaultPasslist = []Matcher{
 	ExactMatch("HOME"),
 	PrefixMatch("NODE_"),
 	ExactMatch("TZ"),
+	ExactMatch("LD_LIBRARY_PATH"),
 }
