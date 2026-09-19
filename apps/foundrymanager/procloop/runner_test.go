@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	fmconfig "github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/config"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/controller"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
@@ -16,13 +15,8 @@ import (
 
 func makeRunner(profiles []profile.Profile) *Runner {
 	return New(Params{
-		Initial:       State{Profiles: profiles, Version: verProfile},
-		InitialActive: "",
-		Activator:     nil,
-		Versions:      nil,
-		Config:        fmconfig.Config{},
-		Backoff:       backoff.Config{},
-		Logger:        slog.Default(),
+		Initial: State{Profiles: profiles, Version: verProfile},
+		Logger:  slog.Default(),
 	})
 }
 

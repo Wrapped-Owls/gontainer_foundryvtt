@@ -8,7 +8,6 @@ import (
 
 	fmconfig "github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/config"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
-	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 )
 
 func makeStore(t *testing.T, active string, profiles []profile.Profile) *Runner {
@@ -17,10 +16,7 @@ func makeStore(t *testing.T, active string, profiles []profile.Profile) *Runner 
 	return New(Params{
 		Initial:       State{Profiles: profiles},
 		InitialActive: active,
-		Activator:     nil,
-		Versions:      nil,
 		Config:        fmconfig.Config{ProfilesFile: file},
-		Backoff:       backoff.Config{},
 		Logger:        slog.Default(),
 	})
 }

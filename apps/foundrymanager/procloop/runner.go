@@ -56,11 +56,12 @@ func New(params Params) *Runner {
 	if params.InitialActive != "" {
 		ctrl.SetActive(params.InitialActive)
 	}
+	cfg := params.Config
 	return &Runner{
 		state:      params.Initial,
 		activator:  params.Activator,
 		versions:   params.Versions,
-		cfg:        params.Config,
+		cfg:        cfg,
 		backoffCfg: params.Backoff,
 		logger:     params.Logger,
 		ctrl:       ctrl,
@@ -68,7 +69,7 @@ func New(params Params) *Runner {
 		logs: logstore.New(
 			logstore.DefaultBufferLines,
 			logstore.DefaultEventBuffer,
-			params.Config.LogAlertPatterns,
+			cfg.LogAlertPatterns,
 		),
 	}
 }

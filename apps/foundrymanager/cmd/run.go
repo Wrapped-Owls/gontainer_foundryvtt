@@ -10,7 +10,6 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/config"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/procloop"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
-	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 )
 
 func Run(_ []string, logger *slog.Logger) int {
@@ -24,13 +23,10 @@ func Run(_ []string, logger *slog.Logger) int {
 	defer stop()
 
 	mgr := procloop.New(procloop.Params{
-		Initial:       procloop.State{},
-		InitialActive: "",
-		Activator:     &noopActivator{},
-		Versions:      noopVersions{},
-		Config:        cfg,
-		Backoff:       backoff.Config{},
-		Logger:        logger,
+		Activator: &noopActivator{},
+		Versions:  noopVersions{},
+		Config:    cfg,
+		Logger:    logger,
 	})
 	return mgr.Run(ctx)
 }
