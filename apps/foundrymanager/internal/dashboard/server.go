@@ -19,6 +19,7 @@ type Params struct {
 
 func Start(ctx context.Context, params Params) <-chan error {
 	const readHeaderTimeout = 3 * time.Second
+
 	mux := http.NewServeMux()
 	registerHandlers(mux, params.Supervisor, params.Versions, params.Profiles, params.Logger)
 	registerLogHandlers(mux, params.Logs, params.Logger)
@@ -28,6 +29,7 @@ func Start(ctx context.Context, params Params) <-chan error {
 
 	context.AfterFunc(ctx, func() {
 		const shutdownTimeout = 5 * time.Second
+
 		shutCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 		_ = srv.Shutdown(shutCtx)
@@ -39,6 +41,6 @@ func Start(ctx context.Context, params Params) <-chan error {
 		close(errCh)
 	}()
 
-	params.Logger.Info("dashboard server listening", "params.Addr", params.Addr)
+	params.Logger.Info("dashboard server listening", "addr", params.Addr)
 	return errCh
 }
