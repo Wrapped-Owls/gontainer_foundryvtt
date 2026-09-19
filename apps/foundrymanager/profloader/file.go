@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
-	"path/filepath"
-	"sync"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
 )
@@ -16,8 +13,6 @@ type profileFile struct {
 	Active   string            `json:"active,omitempty"`
 	Profiles []profile.Profile `json:"profiles"`
 }
-
-var mu sync.Mutex
 
 func FromFile(path string) (profiles []profile.Profile, active string, err error) {
 	var stored []byte
@@ -36,65 +31,4 @@ func FromFile(path string) (profiles []profile.Profile, active string, err error
 		return nil, "", err
 	}
 	return f.Profiles, f.Active, nil
-}
-
-func WriteProfiles(path string, profiles []profile.Profile) error {
-	return mutateFile(path, func(f *profileFile) {
-		f.Profiles = profiles
-	})
-}
-
-func WriteActive(path, name string) error {
-	return mutateFile(path, func(f *profileFile) {
-		f.Active = name
-	})
-}
-
-func mutateFile(path string, apply func(f *profileFile)) error {
-	mu.Lock()
-	defer mu.Unlock()
-
-	stored, err := os.ReadFile(
-		path,
-	) //nolint:gosec // path is sourced from operator-controlled config
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("read profiles: %w", err)
-	}
-
-	var f profileFile
-	if len(bytes.TrimSpace(stored)) > 0 {
-		if err = json.Unmarshal(stored, &f); err != nil {
-			return fmt.Errorf("unmarshal profiles: %w", err)
-		}
-	}
-	apply(&f)
-
-	out, err := json.MarshalIndent(f, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal profiles: %w", err)
-	}
-	return writeFileAtomic(path, append(out, '\n'))
-}
-
-func writeFileAtomic(path string, content []byte) error {
-	staged, err := os.CreateTemp(filepath.Dir(path), ".profiles-*.tmp")
-	if err != nil {
-		return fmt.Errorf("create temp profiles file: %w", err)
-	}
-	stagedName := staged.Name()
-
-	if _, err = staged.Write(content); err != nil {
-		_ = staged.Close()
-		_ = os.Remove(stagedName)
-		return fmt.Errorf("write temp profiles file: %w", err)
-	}
-	if err = staged.Close(); err != nil {
-		_ = os.Remove(stagedName)
-		return fmt.Errorf("close temp profiles file: %w", err)
-	}
-	if err = os.Rename(stagedName, path); err != nil {
-		_ = os.Remove(stagedName)
-		return fmt.Errorf("rename temp profiles file: %w", err)
-	}
-	return nil
 }

@@ -15,9 +15,9 @@ func TestFromEnv_empty(t *testing.T) {
 }
 
 func TestFromEnv_numericKeys(t *testing.T) {
-	t.Setenv("TEST_PROF_0_NAME", "alice")
+	t.Setenv("TEST_PROF_0_NAME", profAlice)
 	t.Setenv("TEST_PROF_0_DATA_PATH", "/data/alice")
-	t.Setenv("TEST_PROF_1_NAME", "bob")
+	t.Setenv("TEST_PROF_1_NAME", profBob)
 	t.Setenv("TEST_PROF_1_DATA_PATH", "/data/bob")
 
 	profiles, err := FromEnv("TEST_PROF")
@@ -27,10 +27,10 @@ func TestFromEnv_numericKeys(t *testing.T) {
 	if len(profiles) != 2 {
 		t.Fatalf("expected 2, got %d", len(profiles))
 	}
-	if profiles[0].Name != "alice" || profiles[0].DataPath != "/data/alice" {
+	if profiles[0].Name != profAlice || profiles[0].DataPath != "/data/alice" {
 		t.Errorf("unexpected profile[0]: %+v", profiles[0])
 	}
-	if profiles[1].Name != "bob" {
+	if profiles[1].Name != profBob {
 		t.Errorf("unexpected profile[1]: %+v", profiles[1])
 	}
 }
@@ -75,7 +75,7 @@ func TestFromEnv_mixedKeysSortNumericFirst(t *testing.T) {
 }
 
 func TestFromEnv_partialFields(t *testing.T) {
-	t.Setenv("TEST_PARTIAL_0_NAME", "alice")
+	t.Setenv("TEST_PARTIAL_0_NAME", profAlice)
 	t.Setenv("TEST_PARTIAL_0_VERSION", "14.0.0")
 	t.Setenv("TEST_PARTIAL_0_WORLD", "my-world")
 
@@ -86,7 +86,7 @@ func TestFromEnv_partialFields(t *testing.T) {
 	if len(profiles) != 1 {
 		t.Fatalf("expected 1, got %d", len(profiles))
 	}
-	if profiles[0].Name != "alice" || profiles[0].Version != "14.0.0" {
+	if profiles[0].Name != profAlice || profiles[0].Version != "14.0.0" {
 		t.Errorf("unexpected profile: %+v", profiles[0])
 	}
 	if profiles[0].World != "my-world" {

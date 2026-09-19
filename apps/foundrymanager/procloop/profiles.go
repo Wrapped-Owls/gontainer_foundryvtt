@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
-	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profloader"
 )
 
 func (r *Runner) ListProfiles() []profile.Profile {
@@ -75,7 +74,7 @@ func (r *Runner) DeleteProfile(name string) error {
 }
 
 func (r *Runner) persistProfiles(profiles []profile.Profile) error {
-	if err := profloader.WriteProfiles(r.cfg.ProfilesFile, profiles); err != nil {
+	if err := r.profilesFile.WriteProfiles(profiles); err != nil {
 		return fmt.Errorf("persist profiles: %w", err)
 	}
 	r.state.Profiles = profiles

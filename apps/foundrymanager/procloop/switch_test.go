@@ -3,10 +3,12 @@ package procloop
 import (
 	"context"
 	"log/slog"
+	"path/filepath"
 	"testing"
 
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/controller"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profloader"
 )
 
 type stubActivator struct {
@@ -24,18 +26,20 @@ func (s *stubActivator) Switch(
 	return s.result, s.err
 }
 
-func makeRunnerWithProfiles(profiles []profile.Profile) *Runner {
+func makeRunnerWithProfiles(t testing.TB, profiles []profile.Profile) *Runner {
+	t.Helper()
 	return &Runner{
-		logger: slog.Default(),
-		ctrl:   controller.New(),
-		state:  State{Profiles: profiles},
+		logger:       slog.Default(),
+		ctrl:         controller.New(),
+		state:        State{Profiles: profiles},
+		profilesFile: profloader.NewWriter(filepath.Join(t.TempDir(), "profiles.json")),
 	}
 }
 
 func TestFindProfile_found(t *testing.T) {
 	t.Parallel()
 
-	r := makeRunnerWithProfiles([]profile.Profile{
+	r := makeRunnerWithProfiles(t, []profile.Profile{
 		{Name: profAlice, DataPath: "/data/alice"},
 		{Name: profBob, DataPath: "/data/bob"},
 	})
@@ -51,7 +55,7 @@ func TestFindProfile_found(t *testing.T) {
 func TestFindProfile_notFound(t *testing.T) {
 	t.Parallel()
 
-	r := makeRunnerWithProfiles([]profile.Profile{{Name: profAlice}})
+	r := makeRunnerWithProfiles(t, []profile.Profile{{Name: profAlice}})
 	_, ok := r.findProfile("charlie")
 	if ok {
 		t.Error("expected not found")
@@ -62,7 +66,7 @@ func TestApplySwitch_success(t *testing.T) {
 	t.Parallel()
 
 	activator := &stubActivator{result: State{Version: "14.1.0"}}
-	r := makeRunnerWithProfiles([]profile.Profile{{Name: profAlice}})
+	r := makeRunnerWithProfiles(t, []profile.Profile{{Name: profAlice}})
 	r.activator = activator
 
 	r.ctrl.SwitchCh <- profAlice
@@ -85,7 +89,7 @@ func TestApplySwitch_preservesLiveProfileList(t *testing.T) {
 	t.Parallel()
 
 	activator := &stubActivator{result: State{Version: verOlder}}
-	r := makeRunnerWithProfiles([]profile.Profile{
+	r := makeRunnerWithProfiles(t, []profile.Profile{
 		{Name: profAlice, Version: verOlder},
 		{Name: profBob, Version: verProfile},
 	})
@@ -106,7 +110,7 @@ func TestApplySwitch_preservesLiveProfileList(t *testing.T) {
 func TestApplySwitch_unknownProfile(t *testing.T) {
 	t.Parallel()
 
-	r := makeRunnerWithProfiles([]profile.Profile{{Name: profAlice}})
+	r := makeRunnerWithProfiles(t, []profile.Profile{{Name: profAlice}})
 	r.ctrl.SwitchCh <- "unknown"
 	if err := r.applySwitch(context.Background()); err == nil {
 		t.Error("expected error for unknown profile")
@@ -116,7 +120,7 @@ func TestApplySwitch_unknownProfile(t *testing.T) {
 func TestApplySwitch_noPending(t *testing.T) {
 	t.Parallel()
 
-	r := makeRunnerWithProfiles(nil)
+	r := makeRunnerWithProfiles(t, nil)
 	if err := r.applySwitch(context.Background()); err != nil {
 		t.Errorf("expected nil error when no switch pending: %v", err)
 	}

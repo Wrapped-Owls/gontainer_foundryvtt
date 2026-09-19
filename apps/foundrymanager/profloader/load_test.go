@@ -20,14 +20,14 @@ func writeProfilesFile(t *testing.T, profiles []map[string]any) string {
 }
 
 func TestMerge_envOnly(t *testing.T) {
-	result := Merge(nil, []profile.Profile{{Name: "alice", DataPath: "/d/alice"}})
-	if len(result) != 1 || result[0].Name != "alice" {
+	result := Merge(nil, []profile.Profile{{Name: profAlice, DataPath: "/d/alice"}})
+	if len(result) != 1 || result[0].Name != profAlice {
 		t.Errorf("unexpected: %+v", result)
 	}
 }
 
 func TestMerge_fileOnly(t *testing.T) {
-	base := []profile.Profile{{Name: "alice", Label: "Alice"}}
+	base := []profile.Profile{{Name: profAlice, Label: "Alice"}}
 	result := Merge(base, nil)
 	if len(result) != 1 || result[0].Label != "Alice" {
 		t.Errorf("unexpected: %+v", result)
@@ -35,8 +35,8 @@ func TestMerge_fileOnly(t *testing.T) {
 }
 
 func TestMerge_overlap(t *testing.T) {
-	base := []profile.Profile{{Name: "alice", Label: "Old", DataPath: "/old"}}
-	ov := []profile.Profile{{Name: "alice", DataPath: "/new"}}
+	base := []profile.Profile{{Name: profAlice, Label: "Old", DataPath: "/old"}}
+	ov := []profile.Profile{{Name: profAlice, DataPath: "/new"}}
 	result := Merge(base, ov)
 	if len(result) != 1 {
 		t.Fatalf("expected 1, got %d", len(result))
@@ -50,8 +50,8 @@ func TestMerge_overlap(t *testing.T) {
 }
 
 func TestMerge_world(t *testing.T) {
-	base := []profile.Profile{{Name: "alice", World: "old-world"}}
-	ov := []profile.Profile{{Name: "alice", World: "new-world"}}
+	base := []profile.Profile{{Name: profAlice, World: "old-world"}}
+	ov := []profile.Profile{{Name: profAlice, World: "new-world"}}
 	result := Merge(base, ov)
 	if len(result) != 1 {
 		t.Fatalf("expected 1, got %d", len(result))
@@ -63,9 +63,9 @@ func TestMerge_world(t *testing.T) {
 
 func TestLoad_fileAndEnv(t *testing.T) {
 	path := writeProfilesFile(t, []map[string]any{
-		{"name": "alice", "dataPath": "/file/alice"},
+		{"name": profAlice, "dataPath": "/file/alice"},
 	})
-	t.Setenv("TEST_LOAD_0_NAME", "bob")
+	t.Setenv("TEST_LOAD_0_NAME", profBob)
 	t.Setenv("TEST_LOAD_0_DATA_PATH", "/env/bob")
 
 	profiles, _, err := Load(path, "TEST_LOAD")
@@ -79,9 +79,9 @@ func TestLoad_fileAndEnv(t *testing.T) {
 
 func TestLoad_returnsActive(t *testing.T) {
 	encoded, _ := json.Marshal(map[string]any{
-		"active": "alice",
+		"active": profAlice,
 		"profiles": []map[string]any{
-			{"name": "alice", "dataPath": "/d/alice"},
+			{"name": profAlice, "dataPath": "/d/alice"},
 		},
 	})
 	path := filepath.Join(t.TempDir(), "profiles.json")
@@ -93,7 +93,7 @@ func TestLoad_returnsActive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if active != "alice" {
+	if active != profAlice {
 		t.Errorf("expected alice, got %q", active)
 	}
 }

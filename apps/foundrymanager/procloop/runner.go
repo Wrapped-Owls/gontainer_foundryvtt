@@ -15,6 +15,7 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/foundrystatus"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/internal/logstore"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profile"
+	"github.com/wrapped-owls/gontainer_foundryvtt/apps/foundrymanager/profloader"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/backoff"
 )
 
@@ -29,16 +30,17 @@ var (
 )
 
 type Runner struct {
-	mu         sync.RWMutex
-	state      State
-	activator  Activator
-	backoffCfg backoff.Config
-	cfg        config.Config
-	logger     *slog.Logger
-	ctrl       *controller.SwitchController
-	status     *foundrystatus.Client
-	versions   dashboard.VersionManager
-	logs       *logstore.Store
+	mu           sync.RWMutex
+	state        State
+	activator    Activator
+	backoffCfg   backoff.Config
+	cfg          config.Config
+	logger       *slog.Logger
+	ctrl         *controller.SwitchController
+	status       *foundrystatus.Client
+	versions     dashboard.VersionManager
+	logs         *logstore.Store
+	profilesFile *profloader.Writer
 }
 
 type Params struct {
@@ -58,14 +60,15 @@ func New(params Params) *Runner {
 	}
 	cfg := params.Config
 	return &Runner{
-		state:      params.Initial,
-		activator:  params.Activator,
-		versions:   params.Versions,
-		cfg:        cfg,
-		backoffCfg: params.Backoff,
-		logger:     params.Logger,
-		ctrl:       ctrl,
-		status:     foundrystatus.NewClient(&http.Client{Timeout: statusTimeout}),
+		state:        params.Initial,
+		activator:    params.Activator,
+		versions:     params.Versions,
+		cfg:          cfg,
+		backoffCfg:   params.Backoff,
+		logger:       params.Logger,
+		ctrl:         ctrl,
+		status:       foundrystatus.NewClient(&http.Client{Timeout: statusTimeout}),
+		profilesFile: profloader.NewWriter(cfg.ProfilesFile),
 		logs: logstore.New(
 			logstore.DefaultBufferLines,
 			logstore.DefaultEventBuffer,
