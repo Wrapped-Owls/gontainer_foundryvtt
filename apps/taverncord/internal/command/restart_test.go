@@ -9,8 +9,6 @@ import (
 )
 
 func TestRestart(t *testing.T) {
-	const worldEberron = "eberron"
-
 	t.Parallel()
 
 	testCases := []struct {

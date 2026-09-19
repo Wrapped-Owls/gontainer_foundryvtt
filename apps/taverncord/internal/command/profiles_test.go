@@ -81,10 +81,6 @@ func activeProfile(world, version string) stubClient {
 
 func TestEditProfileAnnouncesARestart(t *testing.T) {
 	t.Parallel()
-	const (
-		verFoundry13 = "13.351.0"
-		verFoundry14 = "14.361.0"
-	)
 
 	testCases := []struct {
 		name   string

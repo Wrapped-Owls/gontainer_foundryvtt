@@ -92,11 +92,6 @@ func TestSuggestProfilesStopsAtDiscordsCap(t *testing.T) {
 }
 
 func TestSuggestVersions(t *testing.T) {
-	const (
-		verFoundry13 = "13.351.0"
-		verFoundry14 = "14.361.0"
-	)
-
 	t.Parallel()
 
 	testCases := []struct {

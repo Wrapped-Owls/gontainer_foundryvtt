@@ -15,6 +15,10 @@ const (
 	profAlice      = "alice"
 	profAliceLabel = "Alice"
 	profBob        = "bob"
+
+	worldEberron = "eberron"
+	verFoundry13 = "13.351.0"
+	verFoundry14 = "14.361.0"
 )
 
 type stubClient struct {

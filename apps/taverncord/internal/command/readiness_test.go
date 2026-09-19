@@ -88,7 +88,6 @@ func TestAwaitReadyGivesUpAfterTheConfirmWindow(t *testing.T) {
 }
 
 func TestWorldSuffix(t *testing.T) {
-	const worldEberron = "eberron"
 	t.Parallel()
 
 	testCases := []struct {
