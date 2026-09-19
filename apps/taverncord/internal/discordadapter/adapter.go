@@ -1,8 +1,10 @@
 package discordadapter
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/config"
@@ -14,6 +16,7 @@ type Adapter struct {
 	guildID    string
 	router     *Router
 	registered []*discordgo.ApplicationCommand
+	watch      *gatewayWatch
 	logger     *slog.Logger
 }
 
@@ -24,11 +27,15 @@ func New(cfg config.Config, router *Router, logger *slog.Logger) (*Adapter, erro
 	}
 	session.Identify.Intents = discordgo.IntentsGuilds
 	session.AddHandler(router.Handle)
+	watch := &gatewayWatch{}
+	session.AddHandler(watch.onConnect)
+	session.AddHandler(watch.onDisconnect)
 	return &Adapter{
 		session: session,
 		appID:   cfg.Discord.ApplicationID,
 		guildID: cfg.Discord.GuildID,
 		router:  router,
+		watch:   watch,
 		logger:  logger,
 	}, nil
 }
@@ -52,6 +59,10 @@ func (a *Adapter) Open() error {
 	}
 	a.logger.Info("discord commands registered", "scope", scope)
 	return nil
+}
+
+func (a *Adapter) Watch(ctx context.Context, limit time.Duration) error {
+	return a.watch.run(ctx, limit)
 }
 
 func (a *Adapter) SendMessage(channelID, content string) error {

@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
@@ -15,6 +17,8 @@ import (
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/foundryclient"
 	"github.com/wrapped-owls/gontainer_foundryvtt/libs/foundrykit/colorlog"
 )
+
+const gatewayOfflineLimit = 5 * time.Minute
 
 func main() {
 	const (
@@ -33,8 +37,10 @@ func main() {
 		os.Exit(exitUsage)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+	ctx, cancel := context.WithCancelCause(signalCtx)
+	defer cancel(nil)
 
 	fc := foundryclient.New(cfg.Foundry.DashboardURL)
 	cmds := command.New(fc, logger)
@@ -59,6 +65,11 @@ func main() {
 	logger.Info("taverncord bot running - press Ctrl+C to stop")
 
 	var wg sync.WaitGroup
+	wg.Go(func() {
+		if watchErr := adapter.Watch(ctx, gatewayOfflineLimit); watchErr != nil {
+			cancel(watchErr)
+		}
+	})
 	if cfg.Foundry.AlertChannelID != "" {
 		poller := alerts.New(fc, adapter, cfg.Foundry.AlertChannelID, alertPollGap, logger)
 		wg.Go(func() { poller.Run(ctx) })
@@ -66,7 +77,21 @@ func main() {
 	}
 
 	<-ctx.Done()
+	exitIfGatewayLost(ctx, logger)
 	wg.Wait()
 
 	logger.Info("shutting down")
+}
+
+func exitIfGatewayLost(ctx context.Context, logger *slog.Logger) {
+	const exitGatewayLost = 2
+	cause := context.Cause(ctx)
+	if !errors.Is(cause, discordadapter.ErrGatewayUnreachable) {
+		return
+	}
+	logger.Error("discord gateway lost, exiting so the container restarts",
+		slog.String("error", cause.Error()),
+		slog.Duration("offline_limit", gatewayOfflineLimit),
+	)
+	os.Exit(exitGatewayLost) // skips adapter.Close, which waits on the lock a stuck reconnect holds
 }
