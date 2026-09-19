@@ -92,7 +92,7 @@ type invocation struct {
 }
 
 func parseInvocation(interaction discordgo.ApplicationCommandInteractionData) (invocation, bool) {
-	opts := interaction.Options
+	opts := interaction.Options // Discord nests the real options one level down
 	if len(opts) != 1 || opts[0].Type != discordgo.ApplicationCommandOptionSubCommand {
 		return invocation{}, false
 	}

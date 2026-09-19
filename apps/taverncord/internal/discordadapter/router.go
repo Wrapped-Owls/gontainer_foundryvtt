@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/bwmarrin/discordgo"
-
 	"github.com/wrapped-owls/gontainer_foundryvtt/apps/taverncord/internal/command"
 )
 
