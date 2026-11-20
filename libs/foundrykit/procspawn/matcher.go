@@ -29,4 +29,7 @@ var DefaultPasslist = []Matcher{
 	PrefixMatch("NODE_"),
 	ExactMatch("TZ"),
 	ExactMatch("LD_LIBRARY_PATH"),
+	// Nixpkgs Node has no built-in CA fallback; without these every outbound TLS call fails
+	ExactMatch("SSL_CERT_FILE"),
+	ExactMatch("SSL_CERT_DIR"),
 }

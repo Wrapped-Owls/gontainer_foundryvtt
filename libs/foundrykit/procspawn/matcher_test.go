@@ -59,6 +59,8 @@ func TestDefaultPasslistComposition(t *testing.T) {
 		{name: "node options reach the child", key: "NODE_OPTIONS", want: true},
 		{name: "timezone reaches the child", key: "TZ", want: true},
 		{name: "the loader path reaches the child", key: "LD_LIBRARY_PATH", want: true},
+		{name: "the CA bundle reaches the child", key: "SSL_CERT_FILE", want: true},
+		{name: "the CA directory reaches the child", key: "SSL_CERT_DIR", want: true},
 		{name: "secrets never reach the child", key: "FOUNDRY_ADMIN_KEY", want: false},
 		{name: "the session never reaches the child", key: "FOUNDRY_SESSION", want: false},
 	}
